@@ -1,0 +1,1138 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-950 text-slate-100">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TruckBuddy | Peer-to-Peer Truck & Trailer Hauling Platform</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Inter Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#fff7ed',
+              100: '#ffedd5',
+              400: '#fb923c',
+              500: '#f97316', // Safety Orange
+              600: '#ea580c',
+              700: '#c2410c',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Custom Animations & Pulse Effects */
+    @keyframes pulse-ring {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.2); opacity: 0.3; }
+      100% { transform: scale(0.95); opacity: 0.8; }
+    }
+    .pulse-animation {
+      animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    .route-dash {
+      stroke-dasharray: 8, 8;
+      animation: dash 20s linear infinite;
+    }
+    @keyframes dash {
+      to {
+        stroke-dashoffset: -1000;
+      }
+    }
+    /* Scrollbar Styling */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #f97316;
+    }
+  </style>
+</head>
+<body class="h-full font-sans antialiased bg-slate-950 text-slate-100 flex flex-col min-h-screen selection:bg-brand-500 selection:text-white">
+
+  <!-- ================= TOP NAVIGATION BAR ================= -->
+  <header class="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      
+      <!-- Logo -->
+      <div class="flex items-center space-x-3 cursor-pointer" onclick="switchRole('customer')">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-brand-500 flex items-center justify-center text-white shadow-lg shadow-brand-500/20">
+          <i class="fa-solid font-black fa-truck-pickup text-xl"></i>
+        </div>
+        <div>
+          <span class="text-xl font-extrabold tracking-tight text-white">Truck<span class="text-brand-500">Buddy</span></span>
+          <span class="hidden sm:inline-block text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 ml-2 rounded bg-brand-500/10 text-brand-400 border border-brand-500/20">Haul On-Demand</span>
+        </div>
+      </div>
+
+      <!-- Navigation & Mode Selector -->
+      <div class="flex items-center space-x-2 sm:space-x-4">
+        <!-- Mode Tabs -->
+        <nav class="flex bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs sm:text-sm font-medium">
+          <button id="nav-customer" onclick="switchRole('customer')" class="px-3 py-1.5 rounded-lg flex items-center space-x-2 transition-all bg-brand-500 text-white font-semibold shadow-md">
+            <i class="fa-solid fa-user-gear"></i>
+            <span class="hidden md:inline">Book Haul</span>
+          </button>
+          <button id="nav-driver" onclick="switchRole('driver')" class="px-3 py-1.5 rounded-lg flex items-center space-x-2 transition-all text-slate-400 hover:text-white hover:bg-slate-900">
+            <i class="fa-solid fa-truck-monster"></i>
+            <span class="hidden md:inline">Driver Portal</span>
+          </button>
+          <button id="nav-admin" onclick="switchRole('admin')" class="px-3 py-1.5 rounded-lg flex items-center space-x-2 transition-all text-slate-400 hover:text-white hover:bg-slate-900">
+            <i class="fa-solid fa-chart-line"></i>
+            <span class="hidden md:inline">Fleet Admin</span>
+          </button>
+        </nav>
+
+        <!-- User Profile Pill -->
+        <div class="flex items-center pl-2 border-l border-slate-800 space-x-2">
+          <div class="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-xs font-bold text-brand-400">
+            JD
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTENT CONTAINER -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+
+    <!-- ================= VIEW 1: CUSTOMER BOOKING FLOW ================= -->
+    <section id="view-customer" class="space-y-6">
+      
+      <!-- Top Alert / Promo Banner -->
+      <div class="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 rounded-2xl p-4 border border-slate-800 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="flex items-center space-x-3">
+          <div class="p-3 bg-brand-500/10 text-brand-500 rounded-xl border border-brand-500/20">
+            <i class="fa-solid fa-shield-halved text-xl"></i>
+          </div>
+          <div>
+            <h1 class="text-sm sm:text-base font-bold text-white">Verified Peer Drivers & Up to $1M Cargo Protection</h1>
+            <p class="text-xs text-slate-400">Select pickup and drop-off addresses for dynamic distance calculation & guaranteed pricing.</p>
+          </div>
+        </div>
+        <span class="text-xs px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium whitespace-nowrap">
+          <i class="fa-solid fa-circle text-[8px] mr-1.5 animate-pulse"></i> 14 Drivers Available Near You
+        </span>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        
+        <!-- LEFT COLUMN: Address Inputs, Tier Selection, Addons -->
+        <div class="lg:col-span-7 space-y-6">
+          
+          <!-- ADDRESS SELECTION CARD (Distance Calculated Automatically) -->
+          <div class="bg-slate-900/80 rounded-2xl p-5 border border-slate-800 shadow-lg space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h2 class="text-base font-bold text-white flex items-center gap-2">
+                <i class="fa-solid fa-route text-brand-500"></i> Route & Destination
+              </h2>
+              <div class="flex gap-2">
+                <button onclick="presetRoute('short')" class="text-xs px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition">
+                  Short Trip (8 mi)
+                </button>
+                <button onclick="presetRoute('medium')" class="text-xs px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition">
+                  City Haul (22 mi)
+                </button>
+                <button onclick="presetRoute('long')" class="text-xs px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition">
+                  Interstate (65 mi)
+                </button>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <!-- Pickup Address -->
+              <div class="space-y-1.5">
+                <label class="text-xs font-semibold text-slate-400 flex items-center justify-between">
+                  <span>PICKUP LOCATION</span>
+                  <span class="text-emerald-400 text-[10px]"><i class="fa-solid fa-location-dot"></i> Origin</span>
+                </label>
+                <div class="relative">
+                  <select id="pickup-select" onchange="calculateAddressDistance()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm font-medium text-white focus:outline-none focus:border-brand-500 transition appearance-none pr-8">
+                    <option value="houston_dt" selected>Downtown Houston, TX (77002)</option>
+                    <option value="katy_tx">Katy Mills Mall, TX (77494)</option>
+                    <option value="woodlands_tx">The Woodlands, TX (77380)</option>
+                    <option value="sugarland_tx">Sugar Land Town Square, TX (77479)</option>
+                    <option value="pasadena_tx">Pasadena Industrial Hub, TX (77506)</option>
+                  </select>
+                  <i class="fa-solid fa-chevron-down absolute right-3 top-3.5 text-xs text-slate-500 pointer-events-none"></i>
+                </div>
+              </div>
+
+              <!-- Drop-off Address -->
+              <div class="space-y-1.5">
+                <label class="text-xs font-semibold text-slate-400 flex items-center justify-between">
+                  <span>DROP-OFF LOCATION</span>
+                  <span class="text-brand-400 text-[10px]"><i class="fa-solid fa-flag-checkered"></i> Destination</span>
+                </label>
+                <div class="relative">
+                  <select id="dropoff-select" onchange="calculateAddressDistance()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm font-medium text-white focus:outline-none focus:border-brand-500 transition appearance-none pr-8">
+                    <option value="katy_tx" selected>Katy Mills Mall, TX (77494)</option>
+                    <option value="houston_dt">Downtown Houston, TX (77002)</option>
+                    <option value="woodlands_tx">The Woodlands, TX (77380)</option>
+                    <option value="sugarland_tx">Sugar Land Town Square, TX (77479)</option>
+                    <option value="pasadena_tx">Pasadena Industrial Hub, TX (77506)</option>
+                  </select>
+                  <i class="fa-solid fa-chevron-down absolute right-3 top-3.5 text-xs text-slate-500 pointer-events-none"></i>
+                </div>
+              </div>
+            </div>
+
+            <!-- Route Metrics Display Card -->
+            <div class="bg-slate-950/60 rounded-xl p-3 border border-slate-800/80 flex items-center justify-around text-center">
+              <div>
+                <span class="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Calculated Distance</span>
+                <span id="calculated-miles" class="text-lg font-black text-brand-400">22.4 Miles</span>
+              </div>
+              <div class="h-8 w-px bg-slate-800"></div>
+              <div>
+                <span class="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Est. Travel Time</span>
+                <span id="calculated-time" class="text-lg font-black text-slate-200">28 Mins</span>
+              </div>
+              <div class="h-8 w-px bg-slate-800"></div>
+              <div>
+                <span class="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Traffic Status</span>
+                <span class="text-sm font-semibold text-emerald-400 flex items-center justify-center gap-1 mt-0.5">
+                  <i class="fa-solid fa-bolt text-xs"></i> Moderate Flow
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- TRUCK SELECTION TIERS -->
+          <div class="bg-slate-900/80 rounded-2xl p-5 border border-slate-800 shadow-lg space-y-4">
+            <h2 class="text-base font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-truck text-brand-500"></i> Step 1: Choose Pickup Truck Tier
+            </h2>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <!-- Compact Truck -->
+              <div id="tier-compact" onclick="selectTruckTier('compact', 35, 1.25)" class="truck-tier-card cursor-pointer p-4 rounded-xl border border-slate-800 bg-slate-950/50 hover:border-brand-500/50 transition relative group">
+                <div class="flex items-center justify-between mb-2">
+                  <i class="fa-solid fa-truck-pickup text-2xl text-slate-400 group-hover:text-brand-400 transition"></i>
+                  <span class="text-xs font-bold bg-slate-800 px-2 py-0.5 rounded text-slate-300">$35 Base</span>
+                </div>
+                <h3 class="font-bold text-sm text-white">Compact Truck</h3>
+                <p class="text-[11px] text-slate-400 mt-1">Toyota Tacoma / Ford Ranger</p>
+                <div class="mt-3 pt-2 border-t border-slate-800/80 flex justify-between text-[11px] text-slate-300">
+                  <span>Bed Length: <b>5.5 ft</b></span>
+                  <span>Payload: <b>1.4k lbs</b></span>
+                </div>
+              </div>
+
+              <!-- Full-size Truck (Default Selected) -->
+              <div id="tier-fullsize" onclick="selectTruckTier('fullsize', 55, 1.75)" class="truck-tier-card cursor-pointer p-4 rounded-xl border-2 border-brand-500 bg-brand-500/10 transition relative group shadow-lg shadow-brand-500/5">
+                <div class="absolute -top-2.5 right-3 bg-brand-500 text-white text-[9px] font-black uppercase px-2 py-0.5 rounded">Popular</div>
+                <div class="flex items-center justify-between mb-2">
+                  <i class="fa-solid fa-truck-monster text-2xl text-brand-400"></i>
+                  <span class="text-xs font-bold bg-brand-500/20 text-brand-300 px-2 py-0.5 rounded">$55 Base</span>
+                </div>
+                <h3 class="font-bold text-sm text-white">Full-size Truck</h3>
+                <p class="text-[11px] text-slate-300 mt-1">Ford F-150 / RAM 1500</p>
+                <div class="mt-3 pt-2 border-t border-brand-500/20 flex justify-between text-[11px] text-slate-200">
+                  <span>Bed Length: <b>6.5 ft</b></span>
+                  <span>Payload: <b>2.2k lbs</b></span>
+                </div>
+              </div>
+
+              <!-- Heavy Duty Truck -->
+              <div id="tier-heavyduty" onclick="selectTruckTier('heavyduty', 85, 2.30)" class="truck-tier-card cursor-pointer p-4 rounded-xl border border-slate-800 bg-slate-950/50 hover:border-brand-500/50 transition relative group">
+                <div class="flex items-center justify-between mb-2">
+                  <i class="fa-solid fa-truck-moving text-2xl text-slate-400 group-hover:text-brand-400 transition"></i>
+                  <span class="text-xs font-bold bg-slate-800 px-2 py-0.5 rounded text-slate-300">$85 Base</span>
+                </div>
+                <h3 class="font-bold text-sm text-white">Heavy Duty 2500/3500</h3>
+                <p class="text-[11px] text-slate-400 mt-1">Ford F-250 / Chevy Silverado HD</p>
+                <div class="mt-3 pt-2 border-t border-slate-800/80 flex justify-between text-[11px] text-slate-300">
+                  <span>Bed Length: <b>8.0 ft</b></span>
+                  <span>Payload: <b>4.0k lbs</b></span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TRAILER OPTIONS -->
+          <div class="bg-slate-900/80 rounded-2xl p-5 border border-slate-800 shadow-lg space-y-4">
+            <h2 class="text-base font-bold text-white flex items-center justify-between">
+              <span class="flex items-center gap-2"><i class="fa-solid fa-trailer text-brand-500"></i> Step 2: Select Trailer Hookup</span>
+              <span class="text-xs font-normal text-slate-400">(Optional Tow Rig)</span>
+            </h2>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <!-- No Trailer -->
+              <label class="trailer-option cursor-pointer p-3.5 rounded-xl border border-brand-500 bg-brand-500/10 flex items-center justify-between transition">
+                <div class="flex items-center space-x-3">
+                  <input type="radio" name="trailer" value="none" checked onchange="updateTrailerSelection('none', 0, 0)" class="accent-brand-500">
+                  <div>
+                    <div class="font-bold text-xs text-white">No Trailer Needed</div>
+                    <div class="text-[10px] text-slate-400">Truck Bed Only</div>
+                  </div>
+                </div>
+                <span class="text-xs font-bold text-slate-300">$0</span>
+              </label>
+
+              <!-- Utility Open Mesh -->
+              <label class="trailer-option cursor-pointer p-3.5 rounded-xl border border-slate-800 bg-slate-950/50 hover:border-slate-700 flex items-center justify-between transition">
+                <div class="flex items-center space-x-3">
+                  <input type="radio" name="trailer" value="utility" onchange="updateTrailerSelection('5x8 Utility Open Mesh', 25, 0.50)" class="accent-brand-500">
+                  <div>
+                    <div class="font-bold text-xs text-white">5'x8' Utility Mesh</div>
+                    <div class="text-[10px] text-slate-400">Lawn equipment, furniture</div>
+                  </div>
+                </div>
+                <div class="text-right">
+                  <div class="text-xs font-bold text-brand-400">+$25</div>
+                  <div class="text-[9px] text-slate-400">+$0.50/mi</div>
+                </div>
+              </label>
+
+              <!-- Enclosed Cargo -->
+              <label class="trailer-option cursor-pointer p-3.5 rounded-xl border border-slate-800 bg-slate-950/50 hover:border-slate-700 flex items-center justify-between transition">
+                <div class="flex items-center space-x-3">
+                  <input type="radio" name="trailer" value="enclosed" onchange="updateTrailerSelection('6x12 Enclosed Cargo', 45, 0.75)" class="accent-brand-500">
+                  <div>
+                    <div class="font-bold text-xs text-white">6'x12' Enclosed Cargo</div>
+                    <div class="text-[10px] text-slate-400">Weatherproof moves</div>
+                  </div>
+                </div>
+                <div class="text-right">
+                  <div class="text-xs font-bold text-brand-400">+$45</div>
+                  <div class="text-[9px] text-slate-400">+$0.75/mi</div>
+                </div>
+              </label>
+
+              <!-- Flatbed Equipment -->
+              <label class="trailer-option cursor-pointer p-3.5 rounded-xl border border-slate-800 bg-slate-950/50 hover:border-slate-700 flex items-center justify-between transition">
+                <div class="flex items-center space-x-3">
+                  <input type="radio" name="trailer" value="flatbed" onchange="updateTrailerSelection('7x18 Equipment Flatbed', 75, 1.10)" class="accent-brand-500">
+                  <div>
+                    <div class="font-bold text-xs text-white">7'x18' Equipment Flatbed</div>
+                    <div class="text-[10px] text-slate-400">Heavy machinery, timber</div>
+                  </div>
+                </div>
+                <div class="text-right">
+                  <div class="text-xs font-bold text-brand-400">+$75</div>
+                  <div class="text-[9px] text-slate-400">+$1.10/mi</div>
+                </div>
+              </label>
+
+              <!-- Car Hauler -->
+              <label class="trailer-option cursor-pointer p-3.5 rounded-xl border border-slate-800 bg-slate-950/50 hover:border-slate-700 flex items-center justify-between transition sm:col-span-2">
+                <div class="flex items-center space-x-3">
+                  <input type="radio" name="trailer" value="car_hauler" onchange="updateTrailerSelection('18ft Dual-Axle Car Hauler', 110, 1.50)" class="accent-brand-500">
+                  <div>
+                    <div class="font-bold text-xs text-white">18' Dual-Axle Car Hauler with Winch</div>
+                    <div class="text-[10px] text-slate-400">Vehicles, ATVs, projects, heavy load ramp included</div>
+                  </div>
+                </div>
+                <div class="text-right">
+                  <div class="text-xs font-bold text-brand-400">+$110</div>
+                  <div class="text-[9px] text-slate-400">+$1.50/mi</div>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <!-- HARDWARE & ADDONS -->
+          <div class="bg-slate-900/80 rounded-2xl p-5 border border-slate-800 shadow-lg space-y-4">
+            <h2 class="text-base font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-boxes-packing text-brand-500"></i> Step 3: Equipment & Loading Assistance
+            </h2>
+
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <label class="cursor-pointer p-3 rounded-xl border border-slate-800 bg-slate-950/50 flex flex-col justify-between hover:border-slate-700 transition">
+                <input type="checkbox" onchange="toggleAddon('ramps', 15)" class="addon-checkbox accent-brand-500 mb-2">
+                <span class="text-xs font-bold text-white">Loading Ramps</span>
+                <span class="text-[10px] text-slate-400">+$15</span>
+              </label>
+
+              <label class="cursor-pointer p-3 rounded-xl border border-slate-800 bg-slate-950/50 flex flex-col justify-between hover:border-slate-700 transition">
+                <input type="checkbox" onchange="toggleAddon('straps', 10)" class="addon-checkbox accent-brand-500 mb-2" checked>
+                <span class="text-xs font-bold text-white">Heavy Ratchet Straps</span>
+                <span class="text-[10px] text-slate-400">+$10</span>
+              </label>
+
+              <label class="cursor-pointer p-3 rounded-xl border border-slate-800 bg-slate-950/50 flex flex-col justify-between hover:border-slate-700 transition">
+                <input type="checkbox" onchange="toggleAddon('helper', 40)" class="addon-checkbox accent-brand-500 mb-2">
+                <span class="text-xs font-bold text-white">Mover Helper (1 Person)</span>
+                <span class="text-[10px] text-slate-400">+$40</span>
+              </label>
+
+              <label class="cursor-pointer p-3 rounded-xl border border-slate-800 bg-slate-950/50 flex flex-col justify-between hover:border-slate-700 transition">
+                <input type="checkbox" onchange="toggleAddon('tarp', 12)" class="addon-checkbox accent-brand-500 mb-2">
+                <span class="text-xs font-bold text-white">Weatherproof Tarp</span>
+                <span class="text-[10px] text-slate-400">+$12</span>
+              </label>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- RIGHT COLUMN: Interactive Route Map, Price Summary, Dispatch Action -->
+        <div class="lg:col-span-5 space-y-6 lg:sticky lg:top-20">
+          
+          <!-- LIVE ROUTE MAP CANVAS SIMULATION -->
+          <div class="bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden shadow-2xl">
+            <div class="p-3 bg-slate-950/80 border-b border-slate-800 flex items-center justify-between">
+              <span class="text-xs font-bold text-slate-300 flex items-center gap-2">
+                <i class="fa-solid fa-map-location-dot text-brand-500"></i> Live Route Simulator
+              </span>
+              <span class="text-[10px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono">
+                GPS Connected
+              </span>
+            </div>
+
+            <!-- SVG Animated Map Graphics -->
+            <div class="relative w-full h-56 bg-slate-950 overflow-hidden">
+              <!-- Background Grid Pattern -->
+              <svg class="absolute inset-0 w-full h-full opacity-20" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <pattern id="grid" width="30" height="30" patternUnits="userSpaceOnUse">
+                    <path d="M 30 0 L 0 0 0 30" fill="none" stroke="#475569" stroke-width="0.5"/>
+                  </pattern>
+                </defs>
+                <rect width="100%" height="100%" fill="url(#grid)" />
+              </svg>
+
+              <!-- Dynamic Interactive Route Visualizer SVG -->
+              <svg id="route-svg" class="absolute inset-0 w-full h-full" viewBox="0 0 400 220" preserveAspectRatio="none">
+                <!-- Map Road Backdrop -->
+                <path d="M 50 170 C 150 170, 120 50, 250 80 S 350 150, 350 150" fill="none" stroke="#1e293b" stroke-width="14" stroke-linecap="round"/>
+                <!-- Animated Active Route Line -->
+                <path id="route-path" d="M 50 170 C 150 170, 120 50, 250 80 S 350 150, 350 150" fill="none" stroke="#f97316" stroke-width="4" stroke-linecap="round" class="route-dash"/>
+
+                <!-- Origin Pin (Pickup) -->
+                <g transform="translate(50, 170)">
+                  <circle r="12" fill="#10b981" fill-opacity="0.2" class="pulse-animation"/>
+                  <circle r="6" fill="#10b981"/>
+                  <text x="-18" y="22" font-size="10" font-weight="bold" fill="#34d399">Pickup</text>
+                </g>
+
+                <!-- Destination Pin (Dropoff) -->
+                <g transform="translate(350, 150)">
+                  <circle r="12" fill="#f97316" fill-opacity="0.2" class="pulse-animation"/>
+                  <circle r="6" fill="#f97316"/>
+                  <text x="-22" y="22" font-size="10" font-weight="bold" fill="#fb923c">Drop-off</text>
+                </g>
+
+                <!-- Moving Truck Indicator on Route -->
+                <g id="map-truck-icon" transform="translate(180, 85)">
+                  <circle r="14" fill="#0f172a" stroke="#f97316" stroke-width="2"/>
+                  <text x="-6" y="4" font-family="FontAwesome" font-size="11" fill="#f97316">&#xf0d1;</text>
+                </g>
+              </svg>
+
+              <!-- Live Distance Tag Floating on Map -->
+              <div class="absolute bottom-3 left-3 bg-slate-900/90 backdrop-blur border border-slate-800 px-3 py-1.5 rounded-lg flex items-center gap-2">
+                <i class="fa-solid fa-compass text-brand-400 text-xs"></i>
+                <span id="map-tag-distance" class="text-xs font-bold text-white">22.4 miles via I-10 W</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- DYNAMIC PRICE BREAKDOWN CARD -->
+          <div class="bg-slate-900 rounded-2xl p-5 border border-slate-800 shadow-xl space-y-4">
+            <h2 class="text-base font-bold text-white border-b border-slate-800 pb-3 flex justify-between items-center">
+              <span>Trip Price Breakdown</span>
+              <span class="text-xs font-normal text-slate-400">Guaranteed Quote</span>
+            </h2>
+
+            <div class="space-y-2.5 text-xs text-slate-300">
+              <div class="flex justify-between">
+                <span class="text-slate-400" id="summary-truck-label">Full-size Truck Base Fee</span>
+                <span class="font-semibold text-white" id="summary-truck-cost">$55.00</span>
+              </div>
+
+              <div class="flex justify-between">
+                <span class="text-slate-400" id="summary-mileage-label">Distance Fee (22.4 mi @ $1.75/mi)</span>
+                <span class="font-semibold text-white" id="summary-mileage-cost">$39.20</span>
+              </div>
+
+              <div class="flex justify-between" id="row-trailer" style="display: none;">
+                <span class="text-slate-400" id="summary-trailer-label">Trailer Tow Fee</span>
+                <span class="font-semibold text-white" id="summary-trailer-cost">$0.00</span>
+              </div>
+
+              <div class="flex justify-between" id="row-addons">
+                <span class="text-slate-400">Selected Addons (Straps)</span>
+                <span class="font-semibold text-white" id="summary-addons-cost">$10.00</span>
+              </div>
+
+              <div class="flex justify-between text-slate-400">
+                <span>Platform Service & Protection Fee</span>
+                <span class="font-semibold text-white">$6.50</span>
+              </div>
+
+              <div class="pt-3 border-t border-slate-800 flex justify-between items-baseline">
+                <div>
+                  <span class="text-sm font-bold text-white">Total Estimated Cost</span>
+                  <span class="text-[10px] text-slate-400 block">No hidden fees. Driver paid upon delivery.</span>
+                </div>
+                <span id="summary-total-price" class="text-2xl font-black text-brand-400">$110.70</span>
+              </div>
+            </div>
+
+            <!-- BOOK BUTTON -->
+            <button onclick="startDispatchSimulation()" class="w-full bg-gradient-to-r from-brand-600 to-brand-500 hover:from-brand-500 hover:to-brand-400 text-white font-extrabold py-3.5 px-4 rounded-xl shadow-lg shadow-brand-500/25 flex items-center justify-center space-x-2 transition transform active:scale-[0.98]">
+              <i class="fa-solid fa-bolt"></i>
+              <span class="text-base">Request TruckBuddy Now</span>
+            </button>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ================= VIEW 2: LIVE DISPATCH & DELIVERY TRACKING SIMULATION ================= -->
+    <section id="view-dispatch" class="hidden space-y-6">
+      
+      <!-- Back to Booking -->
+      <button onclick="switchRole('customer')" class="text-xs text-slate-400 hover:text-white flex items-center gap-2 font-medium">
+        <i class="fa-solid fa-arrow-left"></i> Back to Booking Form
+      </button>
+
+      <!-- Status Header -->
+      <div class="bg-slate-900 rounded-2xl p-6 border border-slate-800 shadow-xl text-center space-y-4">
+        <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/20 text-xs font-bold">
+          <i class="fa-solid fa-circle text-[8px] animate-ping"></i>
+          <span id="dispatch-status-badge">Driver Dispatched</span>
+        </div>
+
+        <h1 id="dispatch-title" class="text-2xl font-extrabold text-white">Driver Assigned & Heading to Pickup</h1>
+        <p class="text-xs text-slate-400 max-w-lg mx-auto">Your hauling request has been accepted. Follow real-time progress and communicate directly with your driver.</p>
+
+        <!-- 4-STEP PROGRESS BAR -->
+        <div class="max-w-3xl mx-auto pt-4">
+          <div class="grid grid-cols-4 relative text-center">
+            <!-- Connector Bar -->
+            <div class="absolute top-4 left-0 right-0 h-1 bg-slate-800 -z-0">
+              <div id="progress-fill" class="h-full bg-brand-500 transition-all duration-700 w-1/4"></div>
+            </div>
+
+            <!-- Step 1 -->
+            <div class="relative z-10 flex flex-col items-center">
+              <div id="step-1-icon" class="w-8 h-8 rounded-full bg-brand-500 text-white flex items-center justify-center text-xs font-bold ring-4 ring-slate-900">
+                1
+              </div>
+              <span class="text-[11px] font-bold text-white mt-2">En Route</span>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="relative z-10 flex flex-col items-center">
+              <div id="step-2-icon" class="w-8 h-8 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center text-xs font-bold ring-4 ring-slate-900">
+                2
+              </div>
+              <span class="text-[11px] font-medium text-slate-400 mt-2">Loading</span>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="relative z-10 flex flex-col items-center">
+              <div id="step-3-icon" class="w-8 h-8 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center text-xs font-bold ring-4 ring-slate-900">
+                3
+              </div>
+              <span class="text-[11px] font-medium text-slate-400 mt-2">In Transit</span>
+            </div>
+
+            <!-- Step 4 -->
+            <div class="relative z-10 flex flex-col items-center">
+              <div id="step-4-icon" class="w-8 h-8 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center text-xs font-bold ring-4 ring-slate-900">
+                4
+              </div>
+              <span class="text-[11px] font-medium text-slate-400 mt-2">Delivered</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <!-- DRIVER DETAILS CARD & CHAT -->
+        <div class="lg:col-span-5 space-y-6">
+          <div class="bg-slate-900 rounded-2xl p-5 border border-slate-800 shadow-lg space-y-4">
+            <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider">Matched Driver Partner</h3>
+            
+            <div class="flex items-center space-x-4">
+              <div class="relative">
+                <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80" alt="Driver" class="w-14 h-14 rounded-full object-cover border-2 border-brand-500">
+                <span class="absolute bottom-0 right-0 w-4 h-4 rounded-full bg-emerald-500 border-2 border-slate-900"></span>
+              </div>
+              <div>
+                <h4 class="text-base font-bold text-white">Marcus Vance</h4>
+                <p class="text-xs text-slate-400">Ford F-250 Super Duty (White)</p>
+                <div class="flex items-center space-x-2 mt-1">
+                  <span class="text-xs font-bold text-amber-400"><i class="fa-solid fa-star"></i> 4.96</span>
+                  <span class="text-[10px] text-slate-500">• 312 Hauls Completed</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Hardware Tag -->
+            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 flex items-center justify-between text-xs">
+              <span class="text-slate-400">Rig Capability:</span>
+              <span class="font-semibold text-brand-400 flex items-center gap-1.5">
+                <i class="fa-solid fa-truck-trailer"></i> 12,000 lbs Towing Capable
+              </span>
+            </div>
+
+            <!-- Communication Buttons -->
+            <div class="grid grid-cols-2 gap-3">
+              <button onclick="openChatModal()" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-2.5 rounded-xl border border-slate-700 text-xs flex items-center justify-center gap-2 transition">
+                <i class="fa-solid fa-comment text-brand-400"></i> Chat with Marcus
+              </button>
+              <button onclick="alert('Calling Driver Partner Marcus Vance at (800) 555-0199...')" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-2.5 rounded-xl border border-slate-700 text-xs flex items-center justify-center gap-2 transition">
+                <i class="fa-solid fa-phone text-emerald-400"></i> Call Driver
+              </button>
+            </div>
+          </div>
+
+          <!-- PHOTO PROOF OF DELIVERY CARD -->
+          <div class="bg-slate-900 rounded-2xl p-5 border border-slate-800 shadow-lg space-y-3">
+            <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider flex justify-between items-center">
+              <span>Photo Cargo Proof</span>
+              <span id="photo-status-tag" class="text-[10px] text-slate-500">Pending Upload</span>
+            </h3>
+            
+            <div id="photo-proof-container" class="bg-slate-950 rounded-xl h-40 border border-dashed border-slate-800 flex flex-col items-center justify-center text-slate-600 text-xs p-4 text-center">
+              <i class="fa-solid fa-camera text-2xl mb-2 text-slate-700"></i>
+              <span>Driver will capture cargo photos during loading and drop-off</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- TRACKING SIMULATION CONTROLS & MAP -->
+        <div class="lg:col-span-7 space-y-6">
+          <div class="bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden shadow-xl">
+            <div class="p-4 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
+              <div>
+                <h3 class="text-sm font-bold text-white">Live Route Guidance</h3>
+                <p class="text-xs text-slate-400" id="live-route-subtitle">Simulating live driver movement between endpoints...</p>
+              </div>
+
+              <!-- Simulation Control Button -->
+              <button onclick="advanceSimulationStep()" class="bg-brand-500 hover:bg-brand-600 text-white font-bold px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 transition">
+                <i class="fa-solid fa-forward-step"></i> Next Step Simulation
+              </button>
+            </div>
+
+            <div class="relative w-full h-80 bg-slate-950">
+              <svg class="absolute inset-0 w-full h-full opacity-20" xmlns="http://www.w3.org/2000/svg">
+                <rect width="100%" height="100%" fill="url(#grid)" />
+              </svg>
+
+              <!-- SVG Interactive Track -->
+              <svg class="absolute inset-0 w-full h-full" viewBox="0 0 500 300" preserveAspectRatio="none">
+                <path d="M 60 220 C 180 220, 150 70, 320 100 S 440 200, 440 200" fill="none" stroke="#334155" stroke-width="12" stroke-linecap="round"/>
+                <path d="M 60 220 C 180 220, 150 70, 320 100 S 440 200, 440 200" fill="none" stroke="#f97316" stroke-width="4" stroke-dasharray="6,6"/>
+
+                <circle cx="60" cy="220" r="10" fill="#10b981"/>
+                <circle cx="440" cy="200" r="10" fill="#f97316"/>
+
+                <!-- Dynamic Truck Node on Simulation Route -->
+                <g id="sim-truck-node" transform="translate(60, 220)" class="transition-all duration-1000 ease-out">
+                  <circle r="16" fill="#f97316" fill-opacity="0.3" class="pulse-animation"/>
+                  <circle r="12" fill="#0f172a" stroke="#f97316" stroke-width="2"/>
+                  <text x="-5" y="4" font-family="FontAwesome" font-size="10" fill="#f97316">&#xf0d1;</text>
+                </g>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= VIEW 3: DRIVER PARTNER PORTAL ================= -->
+    <section id="view-driver" class="hidden space-y-6">
+      
+      <!-- Driver Header -->
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-slate-900 p-6 rounded-2xl border border-slate-800 gap-4">
+        <div>
+          <h1 class="text-2xl font-extrabold text-white flex items-center gap-2">
+            <i class="fa-solid fa-truck-monster text-brand-500"></i> Driver Partner Portal
+          </h1>
+          <p class="text-xs text-slate-400">Manage active hauling requests, rig tow capabilities, and payout metrics.</p>
+        </div>
+
+        <div class="flex items-center space-x-3">
+          <span class="text-xs font-semibold text-slate-400">Driver Status:</span>
+          <button id="driver-online-toggle" onclick="toggleDriverOnline()" class="px-4 py-2 rounded-xl text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> ONLINE & ACCEPTING JOBS
+          </button>
+        </div>
+      </div>
+
+      <!-- Stats Grid -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800">
+          <span class="text-xs font-bold text-slate-400 block mb-1">THIS WEEK'S EARNINGS</span>
+          <span class="text-2xl font-black text-white">$1,248.50</span>
+          <span class="text-[10px] text-emerald-400 block mt-1"><i class="fa-solid fa-arrow-up"></i> +18% from last week</span>
+        </div>
+
+        <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800">
+          <span class="text-xs font-bold text-slate-400 block mb-1">COMPLETED HAULS</span>
+          <span class="text-2xl font-black text-white">18 Jobs</span>
+          <span class="text-[10px] text-slate-400 block mt-1">Avg $69.30 per haul</span>
+        </div>
+
+        <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800">
+          <span class="text-xs font-bold text-slate-400 block mb-1">RIG TRACTIVE POWER</span>
+          <span class="text-2xl font-black text-brand-400">Heavy Duty</span>
+          <span class="text-[10px] text-slate-400 block mt-1">Class IV Hitch + 20' Flatbed Configured</span>
+        </div>
+      </div>
+
+      <!-- AVAILABLE NEARBY JOBS FEED -->
+      <div class="bg-slate-900 rounded-2xl p-6 border border-slate-800 shadow-xl space-y-4">
+        <h2 class="text-base font-bold text-white flex items-center gap-2">
+          <i class="fa-solid fa-list-check text-brand-500"></i> Available Hauling Requests Nearby
+        </h2>
+
+        <div class="space-y-3">
+          <!-- Job Item 1 -->
+          <div class="p-4 rounded-xl bg-slate-950 border border-slate-800 hover:border-slate-700 transition flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div class="space-y-1">
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-extrabold px-2 py-0.5 rounded bg-brand-500/20 text-brand-400 border border-brand-500/30">PAY: $110.70</span>
+                <span class="text-xs text-slate-400">• 22.4 miles</span>
+                <span class="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-300">Requires Heavy Duty Truck</span>
+              </div>
+              <h3 class="text-sm font-bold text-white">Downtown Houston TX ➔ Katy Mills Mall, TX</h3>
+              <p class="text-xs text-slate-400">Cargo: Construction Lumber & Toolbox (Requires Ratchet Straps)</p>
+            </div>
+
+            <button onclick="acceptJob('Downtown Houston to Katy')" class="w-full md:w-auto bg-brand-500 hover:bg-brand-600 text-white font-bold px-5 py-2.5 rounded-xl text-xs transition shadow-lg shadow-brand-500/20">
+              Accept Job & Start Pickup
+            </button>
+          </div>
+
+          <!-- Job Item 2 -->
+          <div class="p-4 rounded-xl bg-slate-950 border border-slate-800 hover:border-slate-700 transition flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div class="space-y-1">
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-extrabold px-2 py-0.5 rounded bg-brand-500/20 text-brand-400 border border-brand-500/30">PAY: $85.00</span>
+                <span class="text-xs text-slate-400">• 11.2 miles</span>
+                <span class="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-300">Includes 5'x8' Utility Trailer</span>
+              </div>
+              <h3 class="text-sm font-bold text-white">The Woodlands, TX ➔ Spring, TX</h3>
+              <p class="text-xs text-slate-400">Cargo: Zero-Turn Riding Lawn Mower</p>
+            </div>
+
+            <button onclick="acceptJob('The Woodlands to Spring')" class="w-full md:w-auto bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold px-5 py-2.5 rounded-xl text-xs border border-slate-700 transition">
+              Accept Job
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= VIEW 4: FLEET ADMIN MONITOR ================= -->
+    <section id="view-admin" class="hidden space-y-6">
+      <div class="flex justify-between items-center bg-slate-900 p-6 rounded-2xl border border-slate-800">
+        <div>
+          <h1 class="text-2xl font-extrabold text-white flex items-center gap-2">
+            <i class="fa-solid fa-chart-line text-brand-500"></i> Fleet Ops Admin Dashboard
+          </h1>
+          <p class="text-xs text-slate-400">Real-time dispatch overview, active network jobs, and safety metrics.</p>
+        </div>
+
+        <div class="text-right">
+          <span class="text-xs text-slate-400 block">ACTIVE RIDES NOW</span>
+          <span class="text-xl font-black text-brand-400">42 In Progress</span>
+        </div>
+      </div>
+
+      <!-- Fleet Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 space-y-2">
+          <div class="text-xs text-slate-400 font-semibold">Active Drivers Online</div>
+          <div class="text-2xl font-black text-emerald-400">89 Drivers</div>
+          <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+            <div class="bg-emerald-400 h-full w-4/5"></div>
+          </div>
+        </div>
+
+        <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 space-y-2">
+          <div class="text-xs text-slate-400 font-semibold">Gross Booking Volume</div>
+          <div class="text-2xl font-black text-white">$14,290.00</div>
+          <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+            <div class="bg-brand-500 h-full w-2/3"></div>
+          </div>
+        </div>
+
+        <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 space-y-2">
+          <div class="text-xs text-slate-400 font-semibold">Avg Response Time</div>
+          <div class="text-2xl font-black text-slate-200">3.4 Mins</div>
+          <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+            <div class="bg-blue-400 h-full w-11/12"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Active Rides Table -->
+      <div class="bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden shadow-xl">
+        <div class="p-4 border-b border-slate-800 font-bold text-sm text-white">Live Dispatched Rides Network</div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs text-slate-300">
+            <thead class="bg-slate-950 text-slate-400 uppercase font-bold border-b border-slate-800">
+              <tr>
+                <th class="p-3.5">Ride ID</th>
+                <th class="p-3.5">Customer</th>
+                <th class="p-3.5">Driver</th>
+                <th class="p-3.5">Tier & Rig</th>
+                <th class="p-3.5">Status</th>
+                <th class="p-3.5 text-right">Fare</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800/60">
+              <tr class="hover:bg-slate-800/40">
+                <td class="p-3.5 font-mono text-brand-400">#TB-9021</td>
+                <td class="p-3.5 font-medium text-white">John Doe</td>
+                <td class="p-3.5">Marcus Vance</td>
+                <td class="p-3.5">Heavy Duty + Car Hauler</td>
+                <td class="p-3.5"><span class="px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 font-bold border border-amber-500/20">In Transit</span></td>
+                <td class="p-3.5 text-right font-bold text-white">$110.70</td>
+              </tr>
+              <tr class="hover:bg-slate-800/40">
+                <td class="p-3.5 font-mono text-brand-400">#TB-8842</td>
+                <td class="p-3.5 font-medium text-white">Sarah Jenkins</td>
+                <td class="p-3.5">Alex Rivera</td>
+                <td class="p-3.5">Full-size Truck</td>
+                <td class="p-3.5"><span class="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-bold border border-emerald-500/20">En Route</span></td>
+                <td class="p-3.5 text-right font-bold text-white">$64.50</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ================= CHAT MODAL ================= -->
+  <div id="chat-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden flex flex-col h-[480px]">
+      <div class="p-4 bg-slate-950 border-b border-slate-800 flex justify-between items-center">
+        <div class="flex items-center space-x-3">
+          <div class="w-8 h-8 rounded-full bg-brand-500/20 text-brand-400 flex items-center justify-center font-bold text-xs">
+            MV
+          </div>
+          <div>
+            <h4 class="text-xs font-bold text-white">Marcus Vance (Driver)</h4>
+            <span class="text-[10px] text-emerald-400">Active - En Route</span>
+          </div>
+        </div>
+        <button onclick="closeChatModal()" class="text-slate-400 hover:text-white p-1">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <!-- Messages Box -->
+      <div id="chat-messages" class="flex-1 p-4 overflow-y-auto space-y-3 text-xs">
+        <div class="bg-slate-800 text-slate-200 p-3 rounded-xl max-w-[80%]">
+          Hey! I'm en route to your pickup point in Downtown Houston. Should be there in 12 mins.
+        </div>
+        <div class="bg-brand-600 text-white p-3 rounded-xl max-w-[80%] ml-auto text-right">
+          Great! The heavy cargo is ready near the loading dock.
+        </div>
+      </div>
+
+      <!-- Input Box -->
+      <div class="p-3 bg-slate-950 border-t border-slate-800 flex gap-2">
+        <input id="chat-input" type="text" placeholder="Type message to driver..." class="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-500">
+        <button onclick="sendChatMessage()" class="bg-brand-500 text-white font-bold px-4 rounded-xl text-xs">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JavaScript Application State & Logic -->
+  <script>
+    // State Variables
+    let currentDistanceMiles = 22.4;
+    let selectedTruckBase = 55;
+    let selectedTruckPerMile = 1.75;
+    let selectedTruckName = "Full-size Truck";
+    
+    let selectedTrailerName = "No Trailer";
+    let selectedTrailerBase = 0;
+    let selectedTrailerPerMile = 0;
+
+    let selectedAddonsTotal = 10; // Default ratchet straps ($10)
+    let simulationStep = 1;
+
+    // Distance Matrix between predefined locations (in miles)
+    const distanceMatrix = {
+      'houston_dt-katy_tx': 22.4,
+      'houston_dt-woodlands_tx': 29.8,
+      'houston_dt-sugarland_tx': 20.1,
+      'houston_dt-pasadena_tx': 14.2,
+      'katy_tx-woodlands_tx': 45.6,
+      'katy_tx-sugarland_tx': 19.5,
+      'katy_tx-pasadena_tx': 36.8,
+      'woodlands_tx-sugarland_tx': 48.2,
+      'woodlands_tx-pasadena_tx': 38.0,
+      'sugarland_tx-pasadena_tx': 25.4
+    };
+
+    // Initialize App
+    window.onload = function() {
+      calculateAddressDistance();
+    };
+
+    // Calculate Dynamic Distance from Pickup & Drop-off addresses
+    function calculateAddressDistance() {
+      const pickup = document.getElementById('pickup-select').value;
+      const dropoff = document.getElementById('dropoff-select').value;
+
+      if (pickup === dropoff) {
+        currentDistanceMiles = 3.5; // Same zone short haul default
+      } else {
+        const key1 = `${pickup}-${dropoff}`;
+        const key2 = `${dropoff}-${pickup}`;
+        currentDistanceMiles = distanceMatrix[key1] || distanceMatrix[key2] || 18.5;
+      }
+
+      // Calculate estimated time (avg speed ~ 45 mph)
+      const minutes = Math.round((currentDistanceMiles / 45) * 60);
+
+      // Update UI displays
+      document.getElementById('calculated-miles').innerText = `${currentDistanceMiles.toFixed(1)} Miles`;
+      document.getElementById('calculated-time').innerText = `${minutes} Mins`;
+      document.getElementById('map-tag-distance').innerText = `${currentDistanceMiles.toFixed(1)} miles calculated`;
+
+      recalculatePrice();
+    }
+
+    // Preset Route Buttons
+    function presetRoute(type) {
+      if (type === 'short') {
+        document.getElementById('pickup-select').value = 'houston_dt';
+        document.getElementById('dropoff-select').value = 'pasadena_tx';
+      } else if (type === 'medium') {
+        document.getElementById('pickup-select').value = 'houston_dt';
+        document.getElementById('dropoff-select').value = 'katy_tx';
+      } else if (type === 'long') {
+        document.getElementById('pickup-select').value = 'katy_tx';
+        document.getElementById('dropoff-select').value = 'woodlands_tx';
+      }
+      calculateAddressDistance();
+    }
+
+    // Select Truck Tier
+    function selectTruckTier(tier, basePrice, perMile) {
+      selectedTruckBase = basePrice;
+      selectedTruckPerMile = perMile;
+
+      // Update visual styles on tier cards
+      document.querySelectorAll('.truck-tier-card').forEach(card => {
+        card.className = "truck-tier-card cursor-pointer p-4 rounded-xl border border-slate-800 bg-slate-950/50 hover:border-brand-500/50 transition relative group";
+      });
+
+      const selectedCard = document.getElementById(`tier-${tier}`);
+      if (selectedCard) {
+        selectedCard.className = "truck-tier-card cursor-pointer p-4 rounded-xl border-2 border-brand-500 bg-brand-500/10 transition relative group shadow-lg shadow-brand-500/5";
+      }
+
+      if (tier === 'compact') selectedTruckName = "Compact Truck";
+      if (tier === 'fullsize') selectedTruckName = "Full-size Truck";
+      if (tier === 'heavyduty') selectedTruckName = "Heavy Duty Truck";
+
+      recalculatePrice();
+    }
+
+    // Update Trailer Selection
+    function updateTrailerSelection(name, baseFee, mileFee) {
+      selectedTrailerName = name;
+      selectedTrailerBase = baseFee;
+      selectedTrailerPerMile = mileFee;
+
+      recalculatePrice();
+    }
+
+    // Toggle Checkbox Addons
+    function toggleAddon(type, price) {
+      const checkboxes = document.querySelectorAll('.addon-checkbox');
+      let sum = 0;
+      checkboxes.forEach(cb => {
+        if (cb.checked) {
+          sum += 10; // Simple simulation total based on selections
+        }
+      });
+      selectedAddonsTotal = sum;
+      recalculatePrice();
+    }
+
+    // Master Price Recalculation Engine
+    function recalculatePrice() {
+      const truckDistanceCost = currentDistanceMiles * selectedTruckPerMile;
+      const truckTotalCost = selectedTruckBase + truckDistanceCost;
+
+      const trailerDistanceCost = currentDistanceMiles * selectedTrailerPerMile;
+      const trailerTotalCost = selectedTrailerBase + trailerDistanceCost;
+
+      const serviceFee = 6.50;
+      const grandTotal = truckTotalCost + trailerTotalCost + selectedAddonsTotal + serviceFee;
+
+      // Update Summary UI
+      document.getElementById('summary-truck-label').innerText = `${selectedTruckName} Base Fee`;
+      document.getElementById('summary-truck-cost').innerText = `$${selectedTruckBase.toFixed(2)}`;
+
+      document.getElementById('summary-mileage-label').innerText = `Distance Fee (${currentDistanceMiles.toFixed(1)} mi @ $${selectedTruckPerMile.toFixed(2)}/mi)`;
+      document.getElementById('summary-mileage-cost').innerText = `$${truckDistanceCost.toFixed(2)}`;
+
+      const trailerRow = document.getElementById('row-trailer');
+      if (selectedTrailerBase > 0) {
+        trailerRow.style.display = 'flex';
+        document.getElementById('summary-trailer-label').innerText = `${selectedTrailerName}`;
+        document.getElementById('summary-trailer-cost').innerText = `$${trailerTotalCost.toFixed(2)}`;
+      } else {
+        trailerRow.style.display = 'none';
+      }
+
+      document.getElementById('summary-addons-cost').innerText = `$${selectedAddonsTotal.toFixed(2)}`;
+      document.getElementById('summary-total-price').innerText = `$${grandTotal.toFixed(2)}`;
+    }
+
+    // Role View Switcher
+    function switchRole(role) {
+      document.getElementById('view-customer').classList.add('hidden');
+      document.getElementById('view-dispatch').classList.add('hidden');
+      document.getElementById('view-driver').classList.add('hidden');
+      document.getElementById('view-admin').classList.add('hidden');
+
+      // Reset active tabs styling
+      ['customer', 'driver', 'admin'].forEach(r => {
+        const btn = document.getElementById(`nav-${r}`);
+        if (btn) {
+          btn.className = "px-3 py-1.5 rounded-lg flex items-center space-x-2 transition-all text-slate-400 hover:text-white hover:bg-slate-900";
+        }
+      });
+
+      if (role === 'customer') {
+        document.getElementById('view-customer').classList.remove('hidden');
+        document.getElementById('nav-customer').className = "px-3 py-1.5 rounded-lg flex items-center space-x-2 transition-all bg-brand-500 text-white font-semibold shadow-md";
+      } else if (role === 'driver') {
+        document.getElementById('view-driver').classList.remove('hidden');
+        document.getElementById('nav-driver').className = "px-3 py-1.5 rounded-lg flex items-center space-x-2 transition-all bg-brand-500 text-white font-semibold shadow-md";
+      } else if (role === 'admin') {
+        document.getElementById('view-admin').classList.remove('hidden');
+        document.getElementById('nav-admin').className = "px-3 py-1.5 rounded-lg flex items-center space-x-2 transition-all bg-brand-500 text-white font-semibold shadow-md";
+      }
+    }
+
+    // Start Simulation Dispatch
+    function startDispatchSimulation() {
+      document.getElementById('view-customer').classList.add('hidden');
+      document.getElementById('view-dispatch').classList.remove('hidden');
+      simulationStep = 1;
+      updateSimulationUI();
+    }
+
+    // Advance Step in Delivery Simulation
+    function advanceSimulationStep() {
+      simulationStep++;
+      if (simulationStep > 4) simulationStep = 1;
+      updateSimulationUI();
+    }
+
+    function updateSimulationUI() {
+      const fill = document.getElementById('progress-fill');
+      const badge = document.getElementById('dispatch-status-badge');
+      const title = document.getElementById('dispatch-title');
+      const truckNode = document.getElementById('sim-truck-node');
+      const photoBox = document.getElementById('photo-proof-container');
+      const photoTag = document.getElementById('photo-status-tag');
+
+      if (simulationStep === 1) {
+        fill.style.width = '25%';
+        badge.innerText = 'Driver Dispatched';
+        title.innerText = 'Driver Assigned & En Route to Pickup';
+        truckNode.setAttribute('transform', 'translate(60, 220)');
+      } else if (simulationStep === 2) {
+        fill.style.width = '50%';
+        badge.innerText = 'At Pickup Location';
+        title.innerText = 'Driver Arrived - Loading Cargo';
+        truckNode.setAttribute('transform', 'translate(180, 150)');
+
+        photoTag.innerText = 'Pickup Photo Verified';
+        photoTag.className = 'text-[10px] text-emerald-400 font-bold';
+        photoBox.innerHTML = `
+          <img src="https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=400&auto=format&fit=crop&q=80" class="w-full h-full object-cover rounded-lg" alt="Cargo Photo">
+        `;
+      } else if (simulationStep === 3) {
+        fill.style.width = '75%';
+        badge.innerText = 'In Transit';
+        title.innerText = 'Truck & Trailer In Transit to Destination';
+        truckNode.setAttribute('transform', 'translate(320, 100)');
+      } else if (simulationStep === 4) {
+        fill.style.width = '100%';
+        badge.innerText = 'Haul Completed';
+        title.innerText = 'Cargo Delivered & Completed!';
+        truckNode.setAttribute('transform', 'translate(440, 200)');
+      }
+
+      // Highlight Icons
+      for (let i = 1; i <= 4; i++) {
+        const icon = document.getElementById(`step-${i}-icon`);
+        if (i <= simulationStep) {
+          icon.className = "w-8 h-8 rounded-full bg-brand-500 text-white flex items-center justify-center text-xs font-bold ring-4 ring-slate-900";
+        } else {
+          icon.className = "w-8 h-8 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center text-xs font-bold ring-4 ring-slate-900";
+        }
+      }
+    }
+
+    // Driver Portal Online Switcher
+    function toggleDriverOnline() {
+      const btn = document.getElementById('driver-online-toggle');
+      if (btn.innerText.includes('ONLINE')) {
+        btn.className = "px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 text-slate-400 border border-slate-700 flex items-center gap-2";
+        btn.innerHTML = `<span class="w-2 h-2 rounded-full bg-slate-500"></span> OFFLINE`;
+      } else {
+        btn.className = "px-4 py-2 rounded-xl text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-2";
+        btn.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> ONLINE & ACCEPTING JOBS`;
+      }
+    }
+
+    function acceptJob(jobTitle) {
+      alert(`Job "${jobTitle}" accepted! Switching to Live Dispatch view.`);
+      startDispatchSimulation();
+    }
+
+    // Modal Handlers
+    function openChatModal() {
+      document.getElementById('chat-modal').classList.remove('hidden');
+    }
+
+    function closeChatModal() {
+      document.getElementById('chat-modal').classList.add('hidden');
+    }
+
+    function sendChatMessage() {
+      const input = document.getElementById('chat-input');
+      if (!input.value.trim()) return;
+
+      const container = document.getElementById('chat-messages');
+      const userMsg = document.createElement('div');
+      userMsg.className = "bg-brand-600 text-white p-3 rounded-xl max-w-[80%] ml-auto text-right";
+      userMsg.innerText = input.value;
+      container.appendChild(userMsg)
