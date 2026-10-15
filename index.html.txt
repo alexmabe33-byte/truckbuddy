@@ -1,0 +1,3102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NEUROMOTOR ACOUSTICS - Auditory Engine Diagnostics</title>
+  <style>
+    /* ==========================================================================
+       1. THEMES & CSS VARIABLES
+       ========================================================================== */
+    :root {
+      /* Theme: Cyber-Phreak (Default - Matrix Green) */
+      --bg-primary: #020202;
+      --bg-secondary: #0a0e0a;
+      --bg-tertiary: #141a14;
+      --text-primary: #39ff14;
+      --text-secondary: #00aa33;
+      --text-dim: #004411;
+      --accent-color: #00ff66;
+      --accent-dim: #003311;
+      --border-color: #00ff66;
+      --border-dim: #004411;
+      --panel-bg: rgba(5, 15, 5, 0.9);
+      --crt-glow: 0 0 10px rgba(0, 255, 102, 0.5);
+      --scanlines: rgba(0, 255, 102, 0.05);
+      --metal-gradient: linear-gradient(135deg, #181c18 0%, #0a0d0a 100%);
+      --button-metal: linear-gradient(135deg, #2c362c 0%, #151c15 100%);
+      --button-border: #445e44;
+      --led-off: #002200;
+      --led-on: #00ff66;
+      --led-glow: 0 0 8px #00ff66;
+    }
+
+    /* Theme: Valve 1997 (Rust & Amber) */
+    [data-theme="valve97"] {
+      --bg-primary: #120906;
+      --bg-secondary: #1d110a;
+      --bg-tertiary: #2e1a0f;
+      --text-primary: #ffaa00;
+      --text-secondary: #c66c00;
+      --text-dim: #5c3200;
+      --accent-color: #ff5500;
+      --accent-dim: #3d1400;
+      --border-color: #ffaa00;
+      --border-dim: #5c3200;
+      --panel-bg: rgba(29, 17, 10, 0.92);
+      --crt-glow: 0 0 10px rgba(255, 170, 0, 0.45);
+      --scanlines: rgba(255, 170, 0, 0.05);
+      --metal-gradient: linear-gradient(135deg, #25160f 0%, #120906 100%);
+      --button-metal: linear-gradient(135deg, #3d2417 0%, #1d110a 100%);
+      --button-border: #6e4129;
+      --led-off: #331100;
+      --led-on: #ff5500;
+      --led-glow: 0 0 8px #ff5500;
+    }
+
+    /* Theme: Empire Active (Military Olive & Cyan/Red) */
+    [data-theme="empire"] {
+      --bg-primary: #0a0c0b;
+      --bg-secondary: #131a16;
+      --bg-tertiary: #242f28;
+      --text-primary: #00ffff;
+      --text-secondary: #4a7c64;
+      --text-dim: #1f3a2d;
+      --accent-color: #ff3333;
+      --accent-dim: #5c0000;
+      --border-color: #4a7c64;
+      --border-dim: #1f3a2d;
+      --panel-bg: rgba(19, 26, 22, 0.9);
+      --crt-glow: 0 0 10px rgba(0, 255, 255, 0.4);
+      --scanlines: rgba(0, 255, 255, 0.04);
+      --metal-gradient: linear-gradient(135deg, #1c2621 0%, #0a0c0b 100%);
+      --button-metal: linear-gradient(135deg, #2c3a33 0%, #131a16 100%);
+      --button-border: #4d665a;
+      --led-off: #2a0000;
+      --led-on: #ff3333;
+      --led-glow: 0 0 8px #ff3333;
+    }
+
+    /* Theme: Gearbox 1999 (Tactical Amber & Slate) */
+    [data-theme="gearbox"] {
+      --bg-primary: #000000;
+      --bg-secondary: #080c10;
+      --bg-tertiary: #10161d;
+      --text-primary: #ffaa00;
+      --text-secondary: #00cc66;
+      --text-dim: #1a4230;
+      --accent-color: #00ffcc;
+      --accent-dim: #00443a;
+      --border-color: #333d47;
+      --border-dim: #1a2026;
+      --panel-bg: rgba(0, 0, 0, 0.95);
+      --crt-glow: 0 0 8px rgba(0, 255, 204, 0.35);
+      --scanlines: rgba(255, 255, 255, 0.02);
+      --metal-gradient: linear-gradient(135deg, #10141a 0%, #000000 100%);
+      --button-metal: linear-gradient(135deg, #1c232d 0%, #080c10 100%);
+      --button-border: #3c4a5c;
+      --led-off: #00221a;
+      --led-on: #00ffcc;
+      --led-glow: 0 0 8px #00ffcc;
+    }
+
+    /* ==========================================================================
+       2. RESET & LAYOUT SYSTEMS
+       ========================================================================== */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 14px;
+      line-height: 1.4;
+      overflow: hidden;
+      height: 100vh;
+      width: 100vw;
+      position: relative;
+      border: 6px double var(--border-color);
+      box-shadow: inset 0 0 15px rgba(0,0,0,1);
+    }
+
+    a {
+      color: var(--accent-color);
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+
+    /* CRT SCANLINE & LENS DISTORTION EFFECT */
+    .crt-screen {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      animation: crt-flicker 0.15s infinite;
+    }
+
+    .crt-screen::before {
+      content: " ";
+      display: block;
+      position: absolute;
+      top: 0; left: 0; bottom: 0; right: 0;
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), 
+                  linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+      z-index: 1000;
+      background-size: 100% 4px, 6px 100%;
+      pointer-events: none;
+    }
+
+    .crt-screen::after {
+      content: " ";
+      display: block;
+      position: absolute;
+      top: 0; left: 0; bottom: 0; right: 0;
+      background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, rgba(0,0,0,0.3) 100%);
+      z-index: 1001;
+      pointer-events: none;
+    }
+
+    .crt-roll {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: linear-gradient(rgba(18, 16, 16, 0) 0%, rgba(255, 255, 255, 0.05) 10%, rgba(18, 16, 16, 0) 20%);
+      animation: scanline-roll 10s linear infinite;
+      z-index: 1002;
+      pointer-events: none;
+    }
+
+    @keyframes scanline-roll {
+      0% { transform: translateY(-100%); }
+      100% { transform: translateY(100%); }
+    }
+
+    @keyframes crt-flicker {
+      0% { opacity: 0.99; }
+      50% { opacity: 1.0; }
+      100% { opacity: 0.995; }
+    }
+
+    /* CONSOLE GRID CONTAINER */
+    .console-container {
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      height: 100%;
+      width: 100%;
+    }
+
+    /* ==========================================================================
+       3. HEADER DASHBOARD
+       ========================================================================== */
+    header {
+      background: var(--metal-gradient);
+      border-bottom: 4px solid var(--border-color);
+      padding: 10px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: relative;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    }
+
+    .header-logo-section {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .header-logo {
+      border: 2px solid var(--border-color);
+      padding: 5px 12px;
+      font-size: 20px;
+      font-weight: bold;
+      letter-spacing: 2px;
+      background-color: rgba(0,0,0,0.7);
+      box-shadow: var(--crt-glow);
+      text-transform: uppercase;
+    }
+
+    .header-tagline {
+      font-size: 11px;
+      color: var(--text-secondary);
+      border-left: 1px solid var(--border-dim);
+      padding-left: 15px;
+    }
+
+    .header-stats-panel {
+      display: flex;
+      gap: 20px;
+      font-size: 11px;
+    }
+
+    .stat-box {
+      background-color: rgba(0,0,0,0.5);
+      border: 1px solid var(--border-dim);
+      padding: 4px 10px;
+      border-radius: 2px;
+      display: flex;
+      flex-direction: column;
+    }
+    .stat-label { color: var(--text-secondary); text-transform: uppercase; font-size: 9px; }
+    .stat-value { font-weight: bold; }
+    .stat-value.active { color: var(--accent-color); text-shadow: var(--crt-glow); }
+
+    /* Theme Toggles */
+    .theme-controller {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      background-color: rgba(0,0,0,0.4);
+      padding: 4px 10px;
+      border: 1px dashed var(--border-dim);
+    }
+    .theme-btn {
+      background: var(--button-metal);
+      border: 1px solid var(--button-border);
+      color: var(--text-secondary);
+      font-family: monospace;
+      font-size: 9px;
+      padding: 2px 6px;
+      cursor: pointer;
+      text-transform: uppercase;
+      font-weight: bold;
+    }
+    .theme-btn:hover {
+      color: var(--text-primary);
+      border-color: var(--accent-color);
+    }
+    .theme-btn.active {
+      background: var(--accent-color);
+      color: var(--bg-primary);
+      border-color: var(--accent-color);
+      box-shadow: var(--crt-glow);
+    }
+
+    /* ==========================================================================
+       4. CONSOLE BODY & NAVIGATION
+       ========================================================================== */
+    .console-body {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* LEFT CONTROLS SIDEBAR */
+    .console-sidebar {
+      background: var(--metal-gradient);
+      border-right: 4px solid var(--border-color);
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      overflow-y: auto;
+      box-shadow: 4px 0 10px rgba(0,0,0,0.4);
+    }
+
+    .widget-panel {
+      border: 2px solid var(--border-dim);
+      background-color: rgba(0,0,0,0.4);
+      padding: 10px;
+      position: relative;
+    }
+    .widget-panel::before {
+      content: '';
+      position: absolute;
+      top: -1px; left: 10px;
+      background-color: var(--bg-primary);
+      padding: 0 6px;
+      font-size: 9px;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .widget-panel.radar::before { content: 'ROTATIONAL RADAR'; }
+    .widget-panel.menu::before { content: 'SYSTEM MODULES'; }
+    .widget-panel.sound-status::before { content: 'ACOUSTIC FEED'; }
+
+    /* RADAR CANVAS WIDGET */
+    .radar-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 5px 0;
+    }
+    #radarCanvas {
+      border: 1px solid var(--border-dim);
+      background-color: #000;
+      border-radius: 50%;
+      box-shadow: inset 0 0 10px rgba(0,255,102,0.1);
+    }
+
+    /* TACTILE MODULE MENU */
+    .console-menu {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 5px;
+    }
+
+    .console-btn {
+      background: var(--button-metal);
+      border: 2px solid var(--button-border);
+      border-bottom: 4px solid rgba(0,0,0,0.6);
+      border-right: 4px solid rgba(0,0,0,0.6);
+      color: var(--text-secondary);
+      font-family: monospace;
+      padding: 10px 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-transform: uppercase;
+      font-weight: bold;
+      font-size: 12px;
+      transition: all 0.05s ease;
+      position: relative;
+      text-align: left;
+    }
+
+    .console-btn:hover {
+      color: var(--text-primary);
+      border-color: var(--accent-color);
+      text-shadow: var(--crt-glow);
+    }
+
+    .console-btn:active {
+      border-bottom-width: 2px;
+      border-right-width: 2px;
+      transform: translate(2px, 2px);
+    }
+
+    .console-btn.active {
+      color: var(--text-primary);
+      border-color: var(--accent-color);
+      background: rgba(0,0,0,0.5);
+      box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.9);
+      text-shadow: var(--crt-glow);
+    }
+
+    .console-btn .led-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: var(--led-off);
+      border: 1px solid rgba(0,0,0,0.5);
+      transition: background-color 0.1s ease;
+    }
+
+    .console-btn.active .led-dot {
+      background-color: var(--led-on);
+      box-shadow: var(--led-glow);
+    }
+
+    /* QUICK ACOUSTIC CONTROLLER */
+    .acoustic-deck-widget {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 5px;
+    }
+    .power-switch-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .power-switch-label {
+      font-weight: bold;
+      font-size: 11px;
+    }
+    .power-switch {
+      position: relative;
+      display: inline-block;
+      width: 50px;
+      height: 24px;
+    }
+    .power-switch input { opacity: 0; width: 0; height: 0; }
+    .switch-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: var(--led-off);
+      border: 2px solid var(--button-border);
+      transition: .2s;
+    }
+    .switch-slider:before {
+      position: absolute;
+      content: "";
+      height: 14px;
+      width: 14px;
+      left: 3px;
+      bottom: 3px;
+      background-color: var(--button-border);
+      transition: .2s;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    input:checked + .switch-slider {
+      background-color: var(--accent-dim);
+      border-color: var(--accent-color);
+    }
+    input:checked + .switch-slider:before {
+      transform: translateX(26px);
+      background-color: var(--accent-color);
+      box-shadow: var(--crt-glow);
+    }
+
+    .mini-piston-rpm-status {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      border-top: 1px dotted var(--border-dim);
+      padding-top: 8px;
+    }
+
+    /* ==========================================================================
+       5. MAIN CRT PANEL CONTENT AREA
+       ========================================================================== */
+    .console-main-screen {
+      background-color: var(--bg-secondary);
+      padding: 25px;
+      overflow-y: auto;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .screen-content-wrapper {
+      max-width: 1100px;
+      margin: 0 auto;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Tab Page Base */
+    .tab-page {
+      display: none;
+      height: 100%;
+      animation: tab-boot 0.3s ease-out;
+    }
+    .tab-page.active {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    @keyframes tab-boot {
+      0% { opacity: 0; transform: scaleY(0.9) translateY(10px); }
+      100% { opacity: 1; transform: scaleY(1.0) translateY(0); }
+    }
+
+    /* SECTION TITLES */
+    .page-title {
+      font-size: 24px;
+      font-weight: bold;
+      border-bottom: 2px solid var(--border-color);
+      padding-bottom: 10px;
+      text-shadow: var(--crt-glow);
+      text-transform: uppercase;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      letter-spacing: 1px;
+    }
+    .page-title .sub-title {
+      font-size: 11px;
+      color: var(--text-secondary);
+      font-weight: normal;
+    }
+
+    /* GRID DECKS & CARDS */
+    .panel-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .panel-card {
+      border: 1px solid var(--border-color);
+      background-color: var(--panel-bg);
+      padding: 20px;
+      box-shadow: var(--crt-glow);
+      position: relative;
+    }
+    .panel-card-header {
+      font-size: 14px;
+      font-weight: bold;
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--border-dim);
+      padding-bottom: 8px;
+      margin-bottom: 15px;
+      color: var(--accent-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* ==========================================================================
+       6. HOME PAGE (Acoustic Control Board & Synthesis)
+       ========================================================================== */
+    .home-hero-text {
+      font-size: 15px;
+      color: var(--text-primary);
+      background-color: rgba(0,0,0,0.4);
+      border-left: 4px solid var(--accent-color);
+      padding: 15px;
+      margin-bottom: 10px;
+    }
+
+    .soundboard-grid {
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 20px;
+    }
+
+    /* OSCILLOSCOPE SCREEN */
+    .scope-box {
+      border: 3px double var(--border-color);
+      background-color: #000;
+      position: relative;
+      box-shadow: inset 0 0 15px rgba(0, 255, 102, 0.15);
+      height: 250px;
+    }
+    #scopeCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    .scope-label {
+      position: absolute;
+      top: 10px;
+      left: 15px;
+      font-size: 10px;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      background: rgba(0,0,0,0.8);
+      padding: 2px 6px;
+      border: 1px solid var(--border-dim);
+      pointer-events: none;
+    }
+
+    /* SOUND CONTROLLER MIXER */
+    .mixer-deck {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .mixer-channel {
+      background-color: rgba(0,0,0,0.5);
+      border: 1px solid var(--border-dim);
+      padding: 12px;
+      border-radius: 4px;
+    }
+
+    .mixer-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      font-weight: bold;
+    }
+
+    /* Custom Retro Sliders */
+    .slider-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .retro-slider {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 6px;
+      background: var(--border-dim);
+      outline: none;
+      border: 1px solid var(--border-color);
+    }
+    .retro-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 12px;
+      height: 22px;
+      background: var(--button-metal);
+      border: 2px solid var(--accent-color);
+      cursor: pointer;
+      box-shadow: var(--crt-glow);
+    }
+
+    .slider-val {
+      font-family: monospace;
+      font-size: 12px;
+      width: 60px;
+      text-align: right;
+      color: var(--accent-color);
+      font-weight: bold;
+    }
+
+    /* Mechanical Switched Options */
+    .fault-switches-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .mechanical-switch-card {
+      background: var(--button-metal);
+      border: 1px solid var(--button-border);
+      padding: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      transition: all 0.1s ease;
+    }
+    .mechanical-switch-card:hover {
+      border-color: var(--accent-color);
+    }
+    .mechanical-switch-card.active {
+      border-color: var(--accent-color);
+      background: rgba(0, 30, 10, 0.3);
+      box-shadow: inset 0 0 8px rgba(0,255,102,0.1);
+    }
+    .switch-info {
+      display: flex;
+      flex-direction: column;
+    }
+    .switch-title { font-size: 11px; font-weight: bold; text-transform: uppercase; }
+    .switch-desc { font-size: 9px; color: var(--text-secondary); }
+
+    .mechanical-led {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background-color: #300;
+      border: 1px solid rgba(0,0,0,0.6);
+    }
+    .mechanical-switch-card.active .mechanical-led {
+      background-color: #ff3333;
+      box-shadow: 0 0 6px #ff3333;
+    }
+    .mechanical-switch-card.active.healthy .mechanical-led {
+      background-color: #00ff66;
+      box-shadow: 0 0 6px #00ff66;
+    }
+
+    /* Engine Blueprint / Wireframe Block */
+    .technical-specs-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      font-size: 12px;
+    }
+    .spec-item {
+      display: flex;
+      justify-content: space-between;
+      border-bottom: 1px dashed var(--border-dim);
+      padding-bottom: 4px;
+    }
+    .spec-label { color: var(--text-secondary); text-transform: uppercase; }
+    .spec-value { font-weight: bold; }
+
+    /* ==========================================================================
+       7. ABOUT PAGE (Piston Engine Simulation & Blueprint)
+       ========================================================================== */
+    .about-story-text {
+      font-size: 13.5px;
+      text-indent: 20px;
+      margin-bottom: 15px;
+    }
+
+    .blueprint-layout {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 25px;
+    }
+
+    /* Live Animated Piston SVG */
+    .engine-simulator-svg-box {
+      border: 2px solid var(--border-color);
+      background: #000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 10px;
+      box-shadow: var(--crt-glow);
+    }
+
+    /* Callout interactive schematic */
+    .interactive-schematic-info {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .schematic-callout-btn {
+      background: rgba(0,0,0,0.3);
+      border: 1px solid var(--border-dim);
+      padding: 10px;
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.1s ease;
+    }
+    .schematic-callout-btn:hover {
+      border-color: var(--accent-color);
+      background: rgba(0,30,10,0.2);
+    }
+    .schematic-callout-btn.active {
+      border-color: var(--accent-color);
+      background: rgba(0,50,20,0.3);
+      box-shadow: var(--crt-glow);
+    }
+    .schematic-callout-title {
+      font-weight: bold;
+      text-transform: uppercase;
+      font-size: 12px;
+      color: var(--accent-color);
+      margin-bottom: 4px;
+    }
+    .schematic-callout-desc {
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+
+    /* ==========================================================================
+       8. TEAM PAGE (Dossiers & Matrix Avatars)
+       ========================================================================== */
+    .team-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 20px;
+    }
+
+    .team-card {
+      border: 2px solid var(--border-dim);
+      background: var(--panel-bg);
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      transition: border-color 0.1s ease;
+    }
+    .team-card:hover {
+      border-color: var(--border-color);
+    }
+
+    /* Vector Cyber Avatar inside Dossier */
+    .avatar-frame {
+      border: 1px solid var(--border-dim);
+      background-color: #000;
+      height: 180px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .avatar-frame::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: linear-gradient(rgba(0,255,102,0.1) 0%, rgba(0,0,0,0) 100%);
+      pointer-events: none;
+    }
+    .avatar-vector {
+      width: 130px;
+      height: 130px;
+      stroke: var(--text-primary);
+      stroke-width: 2;
+      fill: none;
+      filter: drop-shadow(0 0 3px var(--accent-color));
+    }
+
+    .team-meta {
+      border-top: 1px dotted var(--border-dim);
+      border-bottom: 1px dotted var(--border-dim);
+      padding: 8px 0;
+      font-size: 11px;
+    }
+    .team-stat {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 3px;
+    }
+    .team-stat-label { color: var(--text-secondary); text-transform: uppercase; }
+    .team-stat-val { font-weight: bold; color: var(--accent-color); }
+
+    .team-bio {
+      font-size: 12px;
+      color: var(--text-secondary);
+      height: 80px;
+      overflow-y: auto;
+    }
+
+    /* ==========================================================================
+       9. GALLERY PAGE (Floppy Disc Sonic Archives)
+       ========================================================================== */
+    .gallery-lead-text {
+      font-size: 13.5px;
+      margin-bottom: 10px;
+    }
+
+    .floppy-db-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    /* Hard floppy disc graphics */
+    .floppy-disc-item {
+      border: 2px solid var(--border-dim);
+      background: linear-gradient(135deg, #1c1d22 0%, #101114 100%);
+      padding: 15px;
+      border-radius: 4px;
+      display: grid;
+      grid-template-columns: 120px 1fr;
+      gap: 15px;
+      cursor: pointer;
+      transition: all 0.1s ease;
+      position: relative;
+    }
+    .floppy-disc-item:hover {
+      border-color: var(--accent-color);
+      transform: translateY(-2px);
+      box-shadow: var(--crt-glow);
+    }
+    .floppy-disc-item.active {
+      border-color: var(--accent-color);
+      box-shadow: var(--crt-glow);
+      background: linear-gradient(135deg, #101512 0%, #050a06 100%);
+    }
+
+    /* SVG representation of 3.5" floppy disk */
+    .floppy-graphic {
+      width: 100px;
+      height: 100px;
+      fill: #222;
+      stroke: var(--border-color);
+      stroke-width: 2;
+    }
+    .floppy-disc-item.active .floppy-graphic {
+      fill: #142c1c;
+    }
+
+    .floppy-details {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .floppy-case-id {
+      font-size: 10px;
+      background: var(--border-dim);
+      color: var(--bg-primary);
+      font-weight: bold;
+      padding: 2px 6px;
+      width: fit-content;
+      text-transform: uppercase;
+    }
+    .floppy-title {
+      font-size: 13px;
+      font-weight: bold;
+      text-transform: uppercase;
+      margin-top: 5px;
+    }
+    .floppy-desc {
+      font-size: 11px;
+      color: var(--text-secondary);
+      margin: 5px 0;
+    }
+    .floppy-action {
+      font-size: 10px;
+      font-weight: bold;
+      color: var(--accent-color);
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    /* Floppy Loading Overlay simulated */
+    .floppy-loader-overlay {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.85);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      gap: 10px;
+      font-weight: bold;
+      border: 2px solid var(--accent-color);
+      z-index: 10;
+    }
+    .disk-drive-spinning-led {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background-color: var(--led-off);
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+    .floppy-loader-overlay.active .disk-drive-spinning-led {
+      background-color: var(--led-on);
+      box-shadow: var(--led-glow);
+      animation: led-flicker 0.2s infinite alternate;
+    }
+    @keyframes led-flicker {
+      0% { opacity: 0.5; }
+      100% { opacity: 1.0; }
+    }
+
+    /* ==========================================================================
+       10. RESERVATION PAGE (Diagnostic Booking Desk)
+       ========================================================================== */
+    .reservation-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 25px;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .form-group label {
+      font-weight: bold;
+      text-transform: uppercase;
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+    .retro-input, .retro-select {
+      background: #000;
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 13px;
+      padding: 8px 10px;
+      outline: none;
+      box-shadow: inset 0 0 5px rgba(0,255,102,0.1);
+    }
+    .retro-input:focus, .retro-select:focus {
+      border-color: var(--accent-color);
+      box-shadow: var(--crt-glow);
+    }
+
+    .grid-dates-list {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+    }
+    .grid-date-item {
+      border: 1px solid var(--border-dim);
+      background-color: rgba(0,0,0,0.5);
+      padding: 8px;
+      text-align: center;
+      cursor: pointer;
+      font-size: 11px;
+      text-transform: uppercase;
+    }
+    .grid-date-item:hover {
+      border-color: var(--border-color);
+    }
+    .grid-date-item.active {
+      border-color: var(--accent-color);
+      background-color: var(--accent-dim);
+      box-shadow: var(--crt-glow);
+      color: var(--text-primary);
+      font-weight: bold;
+    }
+
+    .btn-submit {
+      background: var(--button-metal);
+      border: 2px solid var(--button-border);
+      border-bottom: 4px solid rgba(0,0,0,0.7);
+      border-right: 4px solid rgba(0,0,0,0.7);
+      color: var(--text-primary);
+      font-family: monospace;
+      font-weight: bold;
+      padding: 12px;
+      width: 100%;
+      cursor: pointer;
+      text-transform: uppercase;
+      font-size: 13px;
+      transition: all 0.05s ease;
+      margin-top: 10px;
+    }
+    .btn-submit:hover {
+      border-color: var(--accent-color);
+      box-shadow: var(--crt-glow);
+    }
+    .btn-submit:active {
+      border-bottom-width: 2px;
+      border-right-width: 2px;
+      transform: translate(2px, 2px);
+    }
+
+    /* Printed Physical Ticket CSS representation */
+    .reservation-ticket-outer {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100%;
+    }
+    .pixel-floppy-ticket {
+      border: 2px solid var(--border-color);
+      background: #111;
+      width: 320px;
+      padding: 20px;
+      position: relative;
+      box-shadow: var(--crt-glow);
+      border-top-right-radius: 40px; /* angled corner for floppy */
+      display: none;
+      flex-direction: column;
+      gap: 15px;
+      animation: ticket-slide-up 0.5s cubic-bezier(0.1, 0.8, 0.3, 1.0);
+    }
+    @keyframes ticket-slide-up {
+      0% { transform: translateY(100px) rotate(5deg); opacity: 0; }
+      100% { transform: translateY(0) rotate(0); opacity: 1; }
+    }
+    .ticket-label-slide {
+      background: #eee;
+      color: #000;
+      padding: 12px;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 10px;
+      border: 1px solid #777;
+    }
+    .ticket-metal-shutter {
+      width: 120px;
+      height: 45px;
+      background: linear-gradient(180deg, #999, #666);
+      border: 1px solid #444;
+      position: absolute;
+      bottom: 20px;
+      right: 40px;
+      border-radius: 3px;
+    }
+    .ticket-metal-hole {
+      width: 15px;
+      height: 30px;
+      background: #000;
+      margin: 7px auto;
+    }
+
+    /* ==========================================================================
+       11. ACCOUNT PAGE (Neural Diagnostic Upload Scanner)
+       ========================================================================== */
+    .account-wrapper {
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      gap: 25px;
+    }
+
+    .user-profile-widget {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .user-avatar-terminal {
+      background-color: #000;
+      border: 2px solid var(--border-dim);
+      height: 120px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+    }
+    .user-avatar-terminal .avatar-text {
+      font-size: 32px;
+      font-weight: bold;
+      color: var(--accent-color);
+      text-shadow: var(--crt-glow);
+    }
+
+    /* DIAGNOSTIC NEURAL SCANNER BOARD */
+    .diagnostic-scanner-box {
+      border: 2px dashed var(--border-color);
+      background-color: rgba(0,0,0,0.5);
+      padding: 30px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 15px;
+      position: relative;
+      cursor: pointer;
+      min-height: 250px;
+      transition: all 0.1s ease;
+    }
+    .diagnostic-scanner-box:hover {
+      border-color: var(--accent-color);
+      background-color: rgba(0,30,10,0.1);
+    }
+
+    .scanner-mesh-grid {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: linear-gradient(90deg, rgba(0,255,102,0.03) 1px, transparent 1px),
+                  linear-gradient(rgba(0,255,102,0.03) 1px, transparent 1px);
+      background-size: 15px 15px;
+      pointer-events: none;
+    }
+
+    .scanning-laser-line {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 3px;
+      background-color: #ff3333;
+      box-shadow: 0 0 10px #ff3333;
+      display: none;
+      pointer-events: none;
+      z-index: 5;
+    }
+    .diagnostic-scanner-box.scanning .scanning-laser-line {
+      display: block;
+      animation: laser-sweep 2s ease-in-out infinite alternate;
+    }
+    @keyframes laser-sweep {
+      0% { top: 0%; }
+      100% { top: 100%; }
+    }
+
+    .diagnostic-results-card {
+      border: 2px solid var(--accent-color);
+      background: #000;
+      padding: 20px;
+      box-shadow: var(--crt-glow);
+      display: none;
+      flex-direction: column;
+      gap: 15px;
+      position: relative;
+    }
+    .certificate-header {
+      font-size: 16px;
+      font-weight: bold;
+      border-bottom: 2px double var(--border-color);
+      padding-bottom: 5px;
+      text-align: center;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    /* ==========================================================================
+       12. TERMINAL FOOTER LOG BLOCK
+       ========================================================================== */
+    footer {
+      background-color: var(--bg-primary);
+      border-top: 4px solid var(--border-color);
+      padding: 8px 20px;
+      display: grid;
+      grid-template-columns: 120px 1fr 180px;
+      align-items: center;
+      font-size: 11px;
+      box-shadow: 0 -4px 10px rgba(0,0,0,0.5);
+      z-index: 50;
+    }
+
+    .terminal-footer-label {
+      color: var(--accent-color);
+      font-weight: bold;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .terminal-footer-blink {
+      width: 6px;
+      height: 6px;
+      background-color: var(--accent-color);
+      border-radius: 50%;
+      animation: led-flicker 0.4s infinite alternate;
+    }
+
+    .terminal-logger-feed {
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      color: var(--text-secondary);
+      border-left: 1px solid var(--border-dim);
+      padding-left: 15px;
+    }
+
+    .terminal-footer-copyright {
+      text-align: right;
+      color: var(--text-dim);
+    }
+
+    /* ==========================================================================
+       13. INTERACTIVE BOOT-UP / DIAGNOSTIC OVERLAYS
+       ========================================================================== */
+    #bootOverlay {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background-color: #000;
+      color: #39ff14;
+      z-index: 10000;
+      font-family: 'Courier New', Courier, monospace;
+      padding: 40px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .boot-text-line {
+      margin-bottom: 4px;
+      opacity: 0;
+      animation: boot-line-fade 0.05s forwards;
+    }
+    @keyframes boot-line-fade {
+      to { opacity: 1; }
+    }
+
+    .btn-boot-start {
+      background: transparent;
+      border: 1px solid #39ff14;
+      color: #39ff14;
+      font-family: monospace;
+      font-weight: bold;
+      padding: 10px 20px;
+      cursor: pointer;
+      text-transform: uppercase;
+      margin-top: 30px;
+      display: none;
+      width: fit-content;
+      box-shadow: 0 0 5px rgba(0,255,102,0.3);
+    }
+    .btn-boot-start:hover {
+      background-color: #003311;
+      box-shadow: 0 0 12px #39ff14;
+    }
+
+    /* ==========================================================================
+       14. RESPONSIVE MEDIA QUERIES (Handheld Console Layout)
+       ========================================================================== */
+    @media (max-width: 900px) {
+      body {
+        border-width: 2px;
+      }
+      .console-body {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto 1fr;
+        overflow-y: auto;
+      }
+      .console-sidebar {
+        border-right: none;
+        border-bottom: 4px solid var(--border-color);
+        max-height: 250px;
+        flex-direction: row;
+        overflow-x: auto;
+        overflow-y: hidden;
+        padding: 10px;
+      }
+      .widget-panel {
+        min-width: 240px;
+        flex-shrink: 0;
+      }
+      .widget-panel.radar { display: none; }
+      .console-menu {
+        flex-direction: row;
+      }
+      .console-btn {
+        padding: 6px 10px;
+        font-size: 11px;
+      }
+      .panel-row, .soundboard-grid, .blueprint-layout, .team-grid, .floppy-db-grid, .reservation-layout, .account-wrapper {
+        grid-template-columns: 1fr;
+      }
+      header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+      }
+      .header-stats-panel {
+        width: 100%;
+        justify-content: space-between;
+      }
+      footer {
+        grid-template-columns: 1fr;
+        gap: 5px;
+      }
+      .terminal-logger-feed {
+        border-left: none;
+        padding-left: 0;
+      }
+      .terminal-footer-copyright {
+        text-align: left;
+      }
+    }
+  </style>
+</head>
+<body data-theme="cyber">
+
+  <!-- CRT SCREEN CONTAINER WITH LENS GLOW -->
+  <div class="crt-screen">
+    <div class="crt-roll"></div>
+
+    <!-- MAIN SYSTEM CONSOLE STRUCTURE -->
+    <div class="console-container">
+
+      <!-- TOP HEADER BOARD -->
+      <header>
+        <div class="header-logo-section">
+          <div class="header-logo" id="headerSystemName">NEUROMOTOR</div>
+          <div class="header-tagline">Neural-Acoustic Engine Diagnostics // Ver 1.02</div>
+        </div>
+
+        <div class="header-stats-panel">
+          <div class="stat-box">
+            <span class="stat-label">System Node</span>
+            <span class="stat-value active" id="systemNodeVal">TERMINAL_8192</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-label">Acoustic Probe</span>
+            <span class="stat-value active" id="probeStatusText">PROBE_OFFLINE</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-label">System Load</span>
+            <span class="stat-value" id="systemLoadVal">0.00%</span>
+          </div>
+
+          <!-- Theme Interface Switcher -->
+          <div class="theme-controller">
+            <button class="theme-btn active" id="theme-cyber" onclick="setSystemTheme('cyber')">Matrix-99</button>
+            <button class="theme-btn" id="theme-valve97" onclick="setSystemTheme('valve97')">Valve-97</button>
+            <button class="theme-btn" id="theme-empire" onclick="setSystemTheme('empire')">Empire-98</button>
+            <button class="theme-btn" id="theme-gearbox" onclick="setSystemTheme('gearbox')">Gear-99</button>
+          </div>
+        </div>
+      </header>
+
+      <!-- MIDDLE CONSOLE BODY -->
+      <div class="console-body">
+
+        <!-- LEFT CONTROL SIDEBAR -->
+        <aside class="console-sidebar">
+
+          <!-- Dynamic Radar Widget -->
+          <div class="widget-panel radar">
+            <div class="radar-container">
+              <canvas id="radarCanvas" width="160" height="160"></canvas>
+            </div>
+          </div>
+
+          <!-- Tactile Navigation Panel -->
+          <div class="widget-panel menu">
+            <nav class="console-menu">
+              <button class="console-btn active" data-tab="home" onclick="switchConsoleTab('home')">
+                <div class="led-dot"></div>
+                <span>HOME_DECK</span>
+              </button>
+              <button class="console-btn" data-tab="about" onclick="switchConsoleTab('about')">
+                <div class="led-dot"></div>
+                <span>SPEC_SHEET</span>
+              </button>
+              <button class="console-btn" data-tab="gallery" onclick="switchConsoleTab('gallery')">
+                <div class="led-dot"></div>
+                <span>SONIC_DB</span>
+              </button>
+              <button class="console-btn" data-tab="reservation" onclick="switchConsoleTab('reservation')">
+                <div class="led-dot"></div>
+                <span>BOOK_GRID</span>
+              </button>
+              <button class="console-btn" data-tab="account" onclick="switchConsoleTab('account')">
+                <div class="led-dot"></div>
+                <span>USER_PORTAL</span>
+              </button>
+              <button class="console-btn" data-tab="team" onclick="switchConsoleTab('team')">
+                <div class="led-dot"></div>
+                <span>CORE_TEAM</span>
+              </button>
+            </nav>
+          </div>
+
+          <!-- Sidebar Audio Mini Dashboard -->
+          <div class="widget-panel sound-status">
+            <div class="acoustic-deck-widget">
+              <div class="power-switch-container">
+                <span class="power-switch-label">SOUND STATE</span>
+                <label class="power-switch">
+                  <input type="checkbox" id="acousticSoundSwitch" onchange="toggleAcousticEngineAudio()">
+                  <span class="switch-slider"></span>
+                </label>
+              </div>
+              <div class="mini-piston-rpm-status">
+                <span>ROTATION RATE:</span>
+                <span id="miniRpmReadout" style="font-weight: bold; color: var(--accent-color);">1200 RPM</span>
+              </div>
+            </div>
+          </div>
+
+        </aside>
+
+        <!-- MAIN CRT CORE MONITOR -->
+        <main class="console-main-screen">
+          <div class="screen-content-wrapper">
+
+            <!-- ========================================== -->
+            <!-- 1. HOME TAB PAGE (Diagnostic Control board) -->
+            <!-- ========================================== -->
+            <div class="tab-page active" id="tab-home">
+              <div class="page-title">
+                <span>SYSTEM_STATUS // CORE DIAGNOSTICS</span>
+                <span class="sub-title">Neural Acoustic Combustion Tuning</span>
+              </div>
+
+              <div class="home-hero-text">
+                "In the symphony of combustion, every mechanical frequency tells a story. We decode the metal." Placing passive transducers near your block captures acoustic signatures that our 256-node Neural Core maps to structural failures with 99.4% mathematical resolution. Use the transducer board below to test and analyze engine harmonics.
+              </div>
+
+              <!-- Main Sound Synthesizer Controls -->
+              <div class="soundboard-grid">
+                
+                <!-- Scope & Specs block -->
+                <div class="mixer-channel" style="display: flex; flex-direction: column; gap: 15px;">
+                  <div class="mixer-header">
+                    <span>Acoustic Oscilloscope & spectral FFT Core</span>
+                    <span id="oscModeText">TRANS-ACTIVE</span>
+                  </div>
+                  <!-- The neon scope canvas -->
+                  <div class="scope-box">
+                    <div class="scope-label">REAL-TIME SPECTROGRAM</div>
+                    <canvas id="scopeCanvas"></canvas>
+                  </div>
+
+                  <!-- Engine technical readouts -->
+                  <div class="panel-row" style="gap: 15px;">
+                    <div class="widget-panel" style="border-color: var(--border-dim); margin-top: 5px;">
+                      <div class="technical-specs-list">
+                        <div class="spec-item">
+                          <span class="spec-label">Engine Block Profile</span>
+                          <span class="spec-value" id="specEngineBlockName">SYS-I6 TURBO</span>
+                        </div>
+                        <div class="spec-item">
+                          <span class="spec-label">Fundamental Frequency</span>
+                          <span class="spec-value" id="specFreqHz">60.00 Hz</span>
+                        </div>
+                        <div class="spec-item">
+                          <span class="spec-label">Crankshaft Angular Velocity</span>
+                          <span class="spec-value" id="specCrankRad">125.6 rad/s</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="widget-panel" style="border-color: var(--border-dim); margin-top: 5px;">
+                      <div class="technical-specs-list">
+                        <div class="spec-item">
+                          <span class="spec-label">Acoustic Status Code</span>
+                          <span class="spec-value" id="specStatusCode" style="color: var(--accent-color);">NOMINAL_HARMONICS</span>
+                        </div>
+                        <div class="spec-item">
+                          <span class="spec-label">Exhaust Backpressure</span>
+                          <span class="spec-value">1.25 BAR</span>
+                        </div>
+                        <div class="spec-item">
+                          <span class="spec-label">Structural Balance Coeff</span>
+                          <span class="spec-value" id="specStructuralCoeff">0.998</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Live Mixer board -->
+                <div class="mixer-deck">
+                  
+                  <div class="mixer-channel">
+                    <div class="mixer-header">
+                      <span>Engine Configuration</span>
+                      <span id="mixerEngineTypeReadout">Inline-6 Cylinder</span>
+                    </div>
+                    <div style="display: flex; gap: 8px; margin-top: 5px;">
+                      <button class="theme-btn active" id="btn-engine-v8" onclick="setSynthEngine('v8')" style="flex: 1; padding: 6px;">CYBER-V8</button>
+                      <button class="theme-btn" id="btn-engine-i6" onclick="setSynthEngine('i6')" style="flex: 1; padding: 6px;">SYS-I6</button>
+                      <button class="theme-btn" id="btn-engine-flat4" onclick="setSynthEngine('flat4')" style="flex: 1; padding: 6px;">FLAT-4</button>
+                    </div>
+                  </div>
+
+                  <div class="mixer-channel">
+                    <div class="mixer-header">
+                      <span>Rotation Speed Control</span>
+                      <span id="mixerRpmVal">2400 RPM</span>
+                    </div>
+                    <div class="slider-container">
+                      <input type="range" class="retro-slider" id="rpmSlider" min="800" max="6000" value="2400" oninput="updateSynthRpm(this.value)">
+                      <span class="slider-val" id="rpmSliderRead">2400 RPM</span>
+                    </div>
+                  </div>
+
+                  <div class="mixer-channel">
+                    <div class="mixer-header">
+                      <span>Mechanical Loading Factor</span>
+                      <span id="mixerLoadVal">Medium</span>
+                    </div>
+                    <div class="slider-container">
+                      <input type="range" class="retro-slider" id="loadSlider" min="1" max="3" value="2" oninput="updateSynthLoad(this.value)">
+                      <span class="slider-val" id="loadSliderRead">M-LOAD</span>
+                    </div>
+                  </div>
+
+                  <div class="mixer-channel">
+                    <div class="mixer-header">
+                      <span>Inject Mechanical Failures</span>
+                      <span style="color: #ff3333;">FAULT_BOARD</span>
+                    </div>
+                    <div class="fault-switches-grid">
+                      <div class="mechanical-switch-card active healthy" id="btn-fault-healthy" onclick="setSynthFault('healthy')">
+                        <div class="switch-info">
+                          <span class="switch-title">HEALTHY</span>
+                          <span class="switch-desc">Nominal run</span>
+                        </div>
+                        <div class="mechanical-led"></div>
+                      </div>
+                      <div class="mechanical-switch-card" id="btn-fault-misfire" onclick="setSynthFault('misfire')">
+                        <div class="switch-info">
+                          <span class="switch-title">MISFIRE</span>
+                          <span class="switch-desc">Spark plug dead</span>
+                        </div>
+                        <div class="mechanical-led"></div>
+                      </div>
+                      <div class="mechanical-switch-card" id="btn-fault-knock" onclick="setSynthFault('knock')">
+                        <div class="switch-info">
+                          <span class="switch-title">ROD KNOCK</span>
+                          <span class="switch-desc">Bearing clearance</span>
+                        </div>
+                        <div class="mechanical-led"></div>
+                      </div>
+                      <div class="mechanical-switch-card" id="btn-fault-leak" onclick="setSynthFault('leak')">
+                        <div class="switch-info">
+                          <span class="switch-title">EXHAUST LEAK</span>
+                          <span class="switch-desc">Header seal crack</span>
+                        </div>
+                        <div class="mechanical-led"></div>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+
+              </div>
+
+            </div>
+
+            <!-- ========================================== -->
+            <!-- 2. ABOUT TAB PAGE (Animated Piston Schematic) -->
+            <!-- ========================================== -->
+            <div class="tab-page" id="tab-about">
+              <div class="page-title">
+                <span>ANC_PROTOCOLS // ARCHITECTURAL BLUEPRINTS</span>
+                <span class="sub-title">Acoustic Neural Cortex Origin Spec</span>
+              </div>
+
+              <div class="about-story-text">
+                The year is 1998. In a grease-stained warehouse block in Seattle, a rogue team of DSP engineers and mechanics realized a secret: master mechanics don't just inspect blocks visually; they listen to them. They recognize a cylinder fault or a spinning bearing clearance by its microsecond acoustic timbre long before it triggers mechanical catastrophic structural collapse.
+              </div>
+              <div class="about-story-text">
+                By coupling military-grade sonar transceivers with optimized neural-network processing arrays, we built the <strong>Acoustic-Neural Core (ANC)</strong>. Rather than dismantling an assembly block, our sensors pick up micro-vibrations and parse the acoustic spectrum to isolate failure modes of single valves, rods, and ignition points in real-time.
+              </div>
+
+              <div class="blueprint-layout">
+                
+                <!-- Live Engine Simulation SVG Block -->
+                <div class="engine-simulator-svg-box">
+                  <svg id="pistonSvg" width="280" height="340" viewBox="0 0 200 240">
+                    <defs>
+                      <linearGradient id="metalGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#4c505c" />
+                        <stop offset="100%" stop-color="#1c1d22" />
+                      </linearGradient>
+                      <radialGradient id="sparkGlow" cx="50%" cy="50%" r="50%">
+                        <stop offset="0%" stop-color="#00ffff" stop-opacity="1" />
+                        <stop offset="100%" stop-color="#0066ff" stop-opacity="0" />
+                      </radialGradient>
+                    </defs>
+                    <!-- Engine Block Bore Outline -->
+                    <rect x="50" y="20" width="100" height="150" fill="none" stroke="var(--border-color)" stroke-width="2" stroke-dasharray="3 3"/>
+                    <line x1="50" y1="20" x2="150" y2="20" stroke="var(--border-color)" stroke-width="3"/>
+                    
+                    <!-- Spark Plug -->
+                    <rect x="95" y="5" width="10" height="15" fill="var(--bg-primary)" stroke="var(--border-color)" stroke-width="2" />
+                    <!-- Spark visualization -->
+                    <circle id="pistonSpark" cx="100" cy="22" r="15" fill="url(#sparkGlow)" style="display: none;"/>
+
+                    <!-- Valves -->
+                    <path id="valveLeft" d="M 65,10 L 75,20 M 70,10 L 70,5" stroke="var(--border-color)" stroke-width="2"/>
+                    <path id="valveRight" d="M 135,10 L 125,20 M 130,10 L 130,5" stroke="var(--border-color)" stroke-width="2"/>
+
+                    <!-- Piston Pin & Rod Connection Line (Moving) -->
+                    <g id="movingGroup">
+                      <!-- Piston Body -->
+                      <rect x="55" y="40" width="90" height="50" fill="url(#metalGrad)" stroke="var(--border-color)" stroke-width="2" rx="4"/>
+                      <line x1="60" y1="50" x2="140" y2="50" stroke="var(--border-dim)" stroke-width="1"/>
+                      <line x1="60" y1="60" x2="140" y2="60" stroke="var(--border-dim)" stroke-width="1"/>
+                      <circle cx="100" cy="70" r="8" fill="#111" stroke="var(--border-color)" stroke-width="2" />
+                    </g>
+
+                    <!-- Connecting Rod (Moving between piston pin and crankpin) -->
+                    <line id="connectingRod" x1="100" y1="70" x2="100" y2="150" stroke="var(--border-color)" stroke-width="4" stroke-linecap="round"/>
+
+                    <!-- Crankshaft Counterweight (Rotating base) -->
+                    <g id="crankRotator" transform="translate(100, 180)">
+                      <circle cx="0" cy="0" r="30" fill="none" stroke="var(--border-color)" stroke-width="2" stroke-dasharray="4 2"/>
+                      <line x1="-30" y1="0" x2="30" y2="0" stroke="var(--border-dim)" stroke-width="1"/>
+                      <!-- Crankpin circle offset -->
+                      <circle cx="0" cy="-30" r="8" fill="var(--bg-primary)" stroke="var(--border-color)" stroke-width="2"/>
+                    </g>
+                    
+                    <!-- Transducer sensor probes -->
+                    <g transform="translate(30, 80)">
+                      <rect x="0" y="0" width="20" height="10" fill="var(--accent-color)" stroke="var(--border-color)" stroke-width="1"/>
+                      <line x1="20" y1="5" x2="35" y2="5" stroke="var(--accent-color)" stroke-width="1" stroke-dasharray="2 2"/>
+                      <circle cx="3" cy="5" r="2" fill="#fff"/>
+                    </g>
+                    <text x="5" y="75" fill="var(--accent-color)" font-size="7" font-weight="bold">PROBE A</text>
+                  </svg>
+                </div>
+
+                <!-- Callout points explaining typical failures and frequencies -->
+                <div class="interactive-schematic-info">
+                  <div class="schematic-callout-btn active" id="co-valve" onclick="highlightSchematic('valve')">
+                    <div class="schematic-callout-title">1. Intake / Exhaust Valvetrain (1.2 kHz - 2.5 kHz)</div>
+                    <div class="schematic-callout-desc">Improper seating or excess clearance causes high-frequency "chatter". If a spring is cracked, it leaks acoustic pulses during compression.</div>
+                  </div>
+                  <div class="schematic-callout-btn" id="co-piston" onclick="highlightSchematic('piston')">
+                    <div class="schematic-callout-title">2. Piston Slap & Rings (250 Hz - 500 Hz)</div>
+                    <div class="schematic-callout-desc">Worn cylinder skirts cause the piston to rock laterally inside the bore, registering as a hollow metallic drumming sound at firing rates.</div>
+                  </div>
+                  <div class="schematic-callout-btn" id="co-rod" onclick="highlightSchematic('rod')">
+                    <div class="schematic-callout-title">3. Connecting Rod Bearings (80 Hz - 180 Hz)</div>
+                    <div class="schematic-callout-desc">Spun rod journals increase clearance play, creating heavy rhythmic double-clack knocking under acceleration loading.</div>
+                  </div>
+                  <div class="schematic-callout-btn" id="co-spark" onclick="highlightSchematic('spark')">
+                    <div class="schematic-callout-title">4. Spark Ignition Timing (Variable transient)</div>
+                    <div class="schematic-callout-desc">Misfires are silent voids in the acoustic chain. Premature detonation (knock) generates explosive transient spikes at 5-8 kHz.</div>
+                  </div>
+                </div>
+
+              </div>
+
+            </div>
+
+            <!-- ========================================== -->
+            <!-- 3. GALLERY TAB PAGE (Acoustic Floppy Archives) -->
+            <!-- ========================================== -->
+            <div class="tab-page" id="tab-gallery">
+              <div class="page-title">
+                <span>SECURE_DB // HARMONICS CASE REPOSITORY</span>
+                <span class="sub-title">Acoustic Blueprint Library</span>
+              </div>
+
+              <div class="gallery-lead-text">
+                Browse our secure magnetic case archives containing certified vehicle acoustic recordings. Click any floppy unit below to physically load the combustion profile into the active diagnostic visualizer deck.
+              </div>
+
+              <div class="floppy-db-grid">
+                
+                <!-- Floppy Disc 1 -->
+                <div class="floppy-disc-item" id="floppy-skyline" onclick="loadFloppyCase('skyline')">
+                  <!-- Floppy Loader simulated -->
+                  <div class="floppy-loader-overlay" id="loader-skyline">
+                    <div class="disk-drive-spinning-led"></div>
+                    <span>LOADING SYSTEM PROFILE...</span>
+                  </div>
+                  <svg class="floppy-graphic" viewBox="0 0 100 100">
+                    <path d="M10,10 L80,10 L90,20 L90,90 L10,90 Z" />
+                    <!-- Label Area -->
+                    <rect x="20" y="45" width="60" height="40" fill="#eee" stroke="currentColor" stroke-width="1"/>
+                    <rect x="35" y="15" width="30" height="25" fill="#555" />
+                    <rect x="40" y="20" width="10" height="15" fill="#fff" />
+                    <text x="24" y="60" fill="#000" font-size="8" font-family="monospace" font-weight="bold">SKYLINE GT-R</text>
+                    <text x="24" y="70" fill="#ff3333" font-size="6" font-family="monospace">CASE_94_HEALTHY</text>
+                  </svg>
+                  <div class="floppy-details">
+                    <span class="floppy-case-id">CASE_#094-1</span>
+                    <span class="floppy-title">1994 Skyline GT-R R32</span>
+                    <span class="floppy-desc">Nominal Twin-Turbo Inline-6 balance. Smooth 320Hz peak seating, high-pitched turbine whistle baseline at 4.2 kHz.</span>
+                    <span class="floppy-action">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                      <span>LOAD SONIC MATRIX</span>
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Floppy Disc 2 -->
+                <div class="floppy-disc-item" id="floppy-mustang" onclick="loadFloppyCase('mustang')">
+                  <div class="floppy-loader-overlay" id="loader-mustang">
+                    <div class="disk-drive-spinning-led"></div>
+                    <span>LOADING SYSTEM PROFILE...</span>
+                  </div>
+                  <svg class="floppy-graphic" viewBox="0 0 100 100">
+                    <path d="M10,10 L80,10 L90,20 L90,90 L10,90 Z" />
+                    <rect x="20" y="45" width="60" height="40" fill="#eee" stroke="currentColor" stroke-width="1"/>
+                    <rect x="35" y="15" width="30" height="25" fill="#555" />
+                    <rect x="40" y="20" width="10" height="15" fill="#fff" />
+                    <text x="24" y="60" fill="#000" font-size="8" font-family="monospace" font-weight="bold">MUSTANG 5.0</text>
+                    <text x="24" y="70" fill="#ff3333" font-size="6" font-family="monospace">CASE_91_RODKNOCK</text>
+                  </svg>
+                  <div class="floppy-details">
+                    <span class="floppy-case-id">CASE_#050-2</span>
+                    <span class="floppy-title">1991 Mustang LX 5.0</span>
+                    <span class="floppy-desc">Severe crankshaft rod bearing wear on Cylinder 4. Creates a sharp 120Hz mechanical pop repeating at rotation rate.</span>
+                    <span class="floppy-action">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                      <span>LOAD SONIC MATRIX</span>
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Floppy Disc 3 -->
+                <div class="floppy-disc-item" id="floppy-impreza" onclick="loadFloppyCase('impreza')">
+                  <div class="floppy-loader-overlay" id="loader-impreza">
+                    <div class="disk-drive-spinning-led"></div>
+                    <span>LOADING SYSTEM PROFILE...</span>
+                  </div>
+                  <svg class="floppy-graphic" viewBox="0 0 100 100">
+                    <path d="M10,10 L80,10 L90,20 L90,90 L10,90 Z" />
+                    <rect x="20" y="45" width="60" height="40" fill="#eee" stroke="currentColor" stroke-width="1"/>
+                    <rect x="35" y="15" width="30" height="25" fill="#555" />
+                    <rect x="40" y="20" width="10" height="15" fill="#fff" />
+                    <text x="24" y="60" fill="#000" font-size="8" font-family="monospace" font-weight="bold">IMPREZA 22B</text>
+                    <text x="24" y="70" fill="#ff3333" font-size="6" font-family="monospace">CASE_98_MISFIRE</text>
+                  </svg>
+                  <div class="floppy-details">
+                    <span class="floppy-case-id">CASE_#022-3</span>
+                    <span class="floppy-title">1998 Impreza 22B STi</span>
+                    <span class="floppy-desc">Flat-4 layout suffering from spark plug blowout on Cylinder 3. Rhythmic structural dropping of combustion strokes.</span>
+                    <span class="floppy-action">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                      <span>LOAD SONIC MATRIX</span>
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Floppy Disc 4 -->
+                <div class="floppy-disc-item" id="floppy-porsche" onclick="loadFloppyCase('porsche')">
+                  <div class="floppy-loader-overlay" id="loader-porsche">
+                    <div class="disk-drive-spinning-led"></div>
+                    <span>LOADING SYSTEM PROFILE...</span>
+                  </div>
+                  <svg class="floppy-graphic" viewBox="0 0 100 100">
+                    <path d="M10,10 L80,10 L90,20 L90,90 L10,90 Z" />
+                    <rect x="20" y="45" width="60" height="40" fill="#eee" stroke="currentColor" stroke-width="1"/>
+                    <rect x="35" y="15" width="30" height="25" fill="#555" />
+                    <rect x="40" y="20" width="10" height="15" fill="#fff" />
+                    <text x="24" y="60" fill="#000" font-size="8" font-family="monospace" font-weight="bold">PORSCHE 930</text>
+                    <text x="24" y="70" fill="#ff3333" font-size="6" font-family="monospace">CASE_89_LEAK</text>
+                  </svg>
+                  <div class="floppy-details">
+                    <span class="floppy-case-id">CASE_#089-4</span>
+                    <span class="floppy-title">1989 Porsche 930 Turbo</span>
+                    <span class="floppy-desc">Exhaust manifold seal fracture near wastegate. Strong high-frequency gas ventilation blowing hiss at 3.5 kHz.</span>
+                    <span class="floppy-action">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                      <span>LOAD SONIC MATRIX</span>
+                    </span>
+                  </div>
+                </div>
+
+              </div>
+
+            </div>
+
+            <!-- ========================================== -->
+            <!-- 4. RESERVATION TAB PAGE (System Booking) -->
+            <!-- ========================================== -->
+            <div class="tab-page" id="tab-reservation">
+              <div class="page-title">
+                <span>BOOK_GRID // COGNITIVE SCHEDULING UNIT</span>
+                <span class="sub-title">Acoustic Analysis Reservation</span>
+              </div>
+
+              <div class="reservation-layout">
+                
+                <!-- Booking Form -->
+                <div class="panel-card">
+                  <div class="panel-card-header">
+                    <span>Initialize Reservation Form</span>
+                    <span style="color: var(--text-secondary);">SYS_FORM_10A</span>
+                  </div>
+
+                  <form id="reservationForm" onsubmit="executeSystemBooking(event)">
+                    <div class="form-group">
+                      <label for="resName">Operator Identity</label>
+                      <input type="text" class="retro-input" id="resName" required placeholder="ENTER HACKER OR OPERATOR NAME">
+                    </div>
+
+                    <div class="form-group">
+                      <label for="resVehicle">Vehicle Descriptor & Year</label>
+                      <input type="text" class="retro-input" id="resVehicle" required placeholder="E.G., 1999 HONDA CIVIC SI">
+                    </div>
+
+                    <div class="form-group">
+                      <label for="resEngine">Engine Configuration</label>
+                      <select class="retro-select" id="resEngine">
+                        <option value="i4">Inline-4 Cylinder</option>
+                        <option value="i6">Inline-6 Cylinder</option>
+                        <option value="v6">V6 Configuration</option>
+                        <option value="v8">V8 Core</option>
+                        <option value="boxer">Horizontally Opposed Flat</option>
+                        <option value="rotary">Wankel Rotary Block</option>
+                      </select>
+                    </div>
+
+                    <div class="form-group">
+                      <label for="resSymptom">Primary Sonic Symptom</label>
+                      <select class="retro-select" id="resSymptom">
+                        <option value="healthy">Nominal Calibration Inspection</option>
+                        <option value="misfire">Cyclic Hesitation & Sputtering</option>
+                        <option value="knock">Metallic Knocking under Load</option>
+                        <option value="leak">High-pitched Blowing / Exhaust hiss</option>
+                        <option value="valvetick">High-frequency Valve Head Tick</option>
+                      </select>
+                    </div>
+
+                    <div class="form-group">
+                      <label>Chronological Slot</label>
+                      <div class="grid-dates-list">
+                        <div class="grid-date-item active" id="date-slot-1" onclick="setBookingDate('date-slot-1', 'JULY 02, 2026')">02 JUL 2026</div>
+                        <div class="grid-date-item" id="date-slot-2" onclick="setBookingDate('date-slot-2', 'JULY 03, 2026')">03 JUL 2026</div>
+                        <div class="grid-date-item" id="date-slot-3" onclick="setBookingDate('date-slot-3', 'JULY 04, 2026')">04 JUL 2026</div>
+                      </div>
+                    </div>
+
+                    <div class="form-group">
+                      <label for="resExpert">Lead Acoustic Engineer Node</label>
+                      <select class="retro-select" id="resExpert">
+                        <option value="vance">Dr. Evelyn Vance (DSP Core)</option>
+                        <option value="chen">Marcus Chen (Blocks & Gaskets)</option>
+                        <option value="kross">Vera Kross (Neural Networks)</option>
+                      </select>
+                    </div>
+
+                    <button type="submit" class="btn-submit">INITIALIZE SYSTEM APPOINTMENT</button>
+                  </form>
+                </div>
+
+                <!-- Generated printed floppy ticket results -->
+                <div class="reservation-ticket-outer">
+                  <div class="pixel-floppy-ticket" id="generatedFloppyTicket">
+                    <div style="font-weight: bold; text-align: center; border-bottom: 2px dashed var(--border-color); padding-bottom: 5px;">
+                      NEUROMOTOR ACOUSTICS OS
+                    </div>
+                    
+                    <div class="ticket-label-slide">
+                      <div style="font-weight: bold; border-bottom: 1px solid #777; margin-bottom: 5px;">DIAGNOSTIC APPOINTMENT DISKETTE</div>
+                      <div style="display: flex; flex-direction: column; gap: 3px;">
+                        <div><strong>KEY_ID:</strong> <span id="t-id">#NMA-4289</span></div>
+                        <div><strong>OPERATOR:</strong> <span id="t-name">NEO</span></div>
+                        <div><strong>VEHICLE:</strong> <span id="t-vehicle">1999 SKYLINE</span></div>
+                        <div><strong>ENGINE:</strong> <span id="t-engine">SYS-I6</span></div>
+                        <div><strong>NODE:</strong> SECTOR 4 GARAGE</div>
+                        <div><strong>ASSIGNED:</strong> <span id="t-date">JULY 02, 2026</span></div>
+                        <div><strong>ENGINEER:</strong> <span id="t-expert">DR. E. VANCE</span></div>
+                      </div>
+                    </div>
+
+                    <div style="font-size: 10px; color: var(--text-secondary); text-align: center; margin-top: 5px;">
+                      [KEEP ACCESS DISK SECURED]
+                    </div>
+
+                    <!-- Floppy shutter parts -->
+                    <div class="ticket-metal-shutter">
+                      <div class="ticket-metal-hole"></div>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+
+            </div>
+
+            <!-- ========================================== -->
+            <!-- 5. ACCOUNT TAB PAGE (Neural Audio Scanning) -->
+            <!-- ========================================== -->
+            <div class="tab-page" id="tab-account">
+              <div class="page-title">
+                <span>USER_PORTAL // SECURE DIAGNOSTIC SCANNER</span>
+                <span class="sub-title">Acoustic Terminal Workspace</span>
+              </div>
+
+              <div class="account-wrapper">
+                
+                <!-- Terminal Account details -->
+                <div class="user-profile-widget">
+                  <div class="user-avatar-terminal">
+                    <div class="avatar-text">_Φ_</div>
+                  </div>
+                  
+                  <div class="widget-panel" style="border-color: var(--border-dim);">
+                    <div class="technical-specs-list">
+                      <div class="spec-item">
+                        <span class="spec-label">Hacker Alias</span>
+                        <span class="spec-value">AcousticPhreak</span>
+                      </div>
+                      <div class="spec-item">
+                        <span class="spec-label">Security Clearance</span>
+                        <span class="spec-value">PHREAK-2</span>
+                      </div>
+                      <div class="spec-item">
+                        <span class="spec-label">Connected Probe</span>
+                        <span class="spec-value" style="color: var(--accent-color);">MODEL-M1 [OK]</span>
+                      </div>
+                      <div class="spec-item">
+                        <span class="spec-label">Sonic Credits</span>
+                        <span class="spec-value">42</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style="font-size: 11px; color: var(--text-secondary); background: rgba(0,0,0,0.3); border: 1px dashed var(--border-dim); padding: 10px;">
+                    <strong>SYSTEM WARNING:</strong> Ensure your acoustic microphone transducer array is aligned to cylinder block coordinates prior to executing fast Fourier scans.
+                  </div>
+                </div>
+
+                <!-- Drop zone neural file scanner -->
+                <div style="display: flex; flex-direction: column; gap: 20px;">
+                  
+                  <div class="diagnostic-scanner-box" id="neuralScannerBox" onclick="triggerNeuralScan()">
+                    <div class="scanner-mesh-grid"></div>
+                    <div class="scanning-laser-line"></div>
+                    
+                    <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--border-color);">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                      <polyline points="17 8 12 3 7 8"/>
+                      <line x1="12" y1="3" x2="12" y2="15"/>
+                    </svg>
+
+                    <div style="font-weight: bold; text-transform: uppercase;" id="scannerStatusText">
+                      DRAG & DROP ACOUSTIC FILE OR CLICK HERE
+                    </div>
+                    <div style="font-size: 11px; color: var(--text-secondary);">
+                      Accepting: .WAV, .DAT, .RAW mechanical telemetry files (Simulated scanning run)
+                    </div>
+                  </div>
+
+                  <!-- Scanner generated certificate output -->
+                  <div class="diagnostic-results-card" id="scannerResults">
+                    <div class="certificate-header">NEUROMOTOR ACOUSTICS CERTIFIED DIAGNOSIS</div>
+                    
+                    <div class="panel-row" style="gap: 15px;">
+                      <div class="technical-specs-list">
+                        <div class="spec-item">
+                          <span class="spec-label">Analysis Code ID</span>
+                          <span class="spec-value">#NMA-SCAN-88910</span>
+                        </div>
+                        <div class="spec-item">
+                          <span class="spec-label">Calculated Failure State</span>
+                          <span class="spec-value" style="color: #ff3333; font-weight: bold;">SPUN ROD BEARING IN CYLINDER 2</span>
+                        </div>
+                        <div class="spec-item">
+                          <span class="spec-label">Core Confidence Metric</span>
+                          <span class="spec-value" style="color: var(--accent-color);">94.8% ACCURACY</span>
+                        </div>
+                      </div>
+
+                      <div class="technical-specs-list">
+                        <div class="spec-item">
+                          <span class="spec-label">Sonic Peak Signature</span>
+                          <span class="spec-value">180 Hz &amp; 3.6 kHz</span>
+                        </div>
+                        <div class="spec-item">
+                          <span class="spec-label">Inspection Directives</span>
+                          <span class="spec-value" style="color: #ffaa00;">IMMEDIATE CRANKSHAFT RETRIEVAL</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style="font-size: 11.5px; border-top: 1px dotted var(--border-color); padding-top: 10px; color: var(--text-secondary);">
+                      <strong>Remediation Protocols:</strong> Decouple oil pan gasket structure. Inspect connecting rod big-end clearance play on Cylinder 2. Replace structural bearings with oversized brass-coated bearings and flush lubrication reservoir block immediately.
+                    </div>
+                  </div>
+
+                </div>
+
+              </div>
+
+            </div>
+
+            <!-- ========================================== -->
+            <!-- 6. TEAM TAB PAGE (Personnel Dossiers) -->
+            <!-- ========================================== -->
+            <div class="tab-page" id="tab-team">
+              <div class="page-title">
+                <span>CORE_TEAM // SYSTEM SCHEMATIC ARCHIVES</span>
+                <span class="sub-title">Acoustic Development Nodes</span>
+              </div>
+
+              <div class="team-grid">
+                
+                <!-- Card 1 -->
+                <div class="team-card">
+                  <div class="avatar-frame">
+                    <svg class="avatar-vector" viewBox="0 0 100 100">
+                      <!-- Pixel art cybernetic female profile head -->
+                      <circle cx="50" cy="45" r="22" />
+                      <line x1="30" y1="45" x2="20" y2="45"/>
+                      <line x1="70" y1="45" x2="80" y2="45"/>
+                      <polygon points="50,15 45,25 55,25" />
+                      <!-- Cyber implants lines -->
+                      <path d="M 40,35 L 40,55 L 60,55" />
+                      <circle cx="60" cy="55" r="3" fill="currentColor"/>
+                    </svg>
+                  </div>
+                  <div style="font-weight: bold; text-transform: uppercase;">Dr. Evelyn "M1c-Check" Vance</div>
+                  <div style="font-size: 11px; color: var(--accent-color); text-transform: uppercase;">Founder & Chief Acoustic Scientist</div>
+                  
+                  <div class="team-meta">
+                    <div class="team-stat">
+                      <span class="team-stat-label">Acoustic Parsing</span>
+                      <span class="team-stat-val">99%</span>
+                    </div>
+                    <div class="team-stat">
+                      <span class="team-stat-label">Hardware Interface</span>
+                      <span class="team-stat-val">91%</span>
+                    </div>
+                  </div>
+                  
+                  <div class="team-bio">
+                    Ex-defense audio specialist. Vance spent 8 years analyzing Soviet submarine acoustic sonar footprints. She adapted naval passive hydrophone logic to internal combustion piston blocks.
+                  </div>
+                </div>
+
+                <!-- Card 2 -->
+                <div class="team-card">
+                  <div class="avatar-frame">
+                    <svg class="avatar-vector" viewBox="0 0 100 100">
+                      <!-- Mechanical hacker profile with cyber glasses -->
+                      <rect x="35" y="30" width="30" height="30" rx="3" />
+                      <!-- Cyber goggles -->
+                      <rect x="30" y="38" width="40" height="8" fill="none"/>
+                      <circle cx="40" cy="42" r="3" fill="currentColor"/>
+                      <circle cx="60" cy="42" r="3" fill="currentColor"/>
+                      <path d="M30,42 L70,42" />
+                      <!-- Wiring harness -->
+                      <path d="M 50,60 L 50,80" />
+                    </svg>
+                  </div>
+                  <div style="font-weight: bold; text-transform: uppercase;">Marcus "CylinderPhreak" Chen</div>
+                  <div style="font-size: 11px; color: var(--accent-color); text-transform: uppercase;">Lead Mechanical Engineer</div>
+                  
+                  <div class="team-meta">
+                    <div class="team-stat">
+                      <span class="team-stat-label">Block Blueprinting</span>
+                      <span class="team-stat-val">98%</span>
+                    </div>
+                    <div class="team-stat">
+                      <span class="team-stat-label">Acoustic Diagnostic</span>
+                      <span class="team-stat-val">95%</span>
+                    </div>
+                  </div>
+                  
+                  <div class="team-bio">
+                    Engine builder and tuner. Chen can identify a micro-millimeter piston skirt gap variance simply by placing a standard screwdriver to his ear on a vibrating block cover.
+                  </div>
+                </div>
+
+                <!-- Card 3 -->
+                <div class="team-card">
+                  <div class="avatar-frame">
+                    <svg class="avatar-vector" viewBox="0 0 100 100">
+                      <!-- Neural architect head, grid lines -->
+                      <circle cx="50" cy="45" r="20" />
+                      <path d="M 30,45 A 20,20 0 0,0 70,45" />
+                      <line x1="50" y1="25" x2="50" y2="65"/>
+                      <line x1="30" y1="45" x2="70" y2="45"/>
+                      <circle cx="50" cy="35" r="2" fill="currentColor"/>
+                      <circle cx="42" cy="45" r="2" fill="currentColor"/>
+                      <circle cx="58" cy="45" r="2" fill="currentColor"/>
+                      <circle cx="50" cy="55" r="2" fill="currentColor"/>
+                    </svg>
+                  </div>
+                  <div style="font-weight: bold; text-transform: uppercase;">Vera "Socket_88" Kross</div>
+                  <div style="font-size: 11px; color: var(--accent-color); text-transform: uppercase;">Neural Networks Architect</div>
+                  
+                  <div class="team-meta">
+                    <div class="team-stat">
+                      <span class="team-stat-label">DSP Optimization</span>
+                      <span class="team-stat-val">99%</span>
+                    </div>
+                    <div class="team-stat">
+                      <span class="team-stat-label">Kernel Cryptography</span>
+                      <span class="team-stat-val">96%</span>
+                    </div>
+                  </div>
+                  
+                  <div class="team-bio">
+                    Architect of the 256-node digital auditory cortex that maps audio waves into microsecond diagnostics. Kross is obsessed with compiling lightweight binary structures.
+                  </div>
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+        </main>
+
+      </div>
+
+      <!-- BOTTOM SYSTEM STATUS TERMINAL BAR -->
+      <footer>
+        <div class="terminal-footer-label">
+          <div class="terminal-footer-blink"></div>
+          <span>MONITORING</span>
+        </div>
+        
+        <div class="terminal-logger-feed" id="terminalLoggerLog">
+          [SYS] Boot sequence completed successfully. Ready for acoustic evaluation nodes.
+        </div>
+
+        <div class="terminal-footer-copyright">
+          &copy; 1999 NEUROMOTOR SYSTEM
+        </div>
+      </footer>
+
+    </div>
+
+  </div>
+
+  <!-- INITIAL 1999 TERMINAL OS SYSTEM BOOT LOADER OVERLAY -->
+  <div id="bootOverlay">
+    <!-- Boot text generated dynamically -->
+  </div>
+
+  <!-- ==========================================================================
+       15. WEB AUDIO SYNTHESIZER & REAL-TIME INTERACTIVE SCRIPTING
+       ========================================================================== -->
+  <script>
+    /* ==========================================
+       System Variables & Configs
+       ========================================== */
+    let currentTheme = 'cyber';
+    let currentTab = 'home';
+    let systemLoadVal = 0.00;
+    
+    // Web Audio engine synth state
+    let audioCtx = null;
+    let isSynthRunning = false;
+    let engineOsc1 = null;
+    let engineOsc2 = null;
+    let engineSubOsc = null;
+    let noiseNode = null;
+    let noiseFilter = null;
+    let noiseGain = null;
+    let misfireGain = null;
+    let mainGain = null;
+    let analyserNode = null;
+    
+    // Real-time synth parameters
+    let currentRPM = 2400;
+    let currentLoad = 2; // 1 = Low, 2 = Medium, 3 = High
+    let currentEngineType = 'i6'; // v8, i6, flat4
+    let currentFault = 'healthy'; // healthy, misfire, knock, leak
+    
+    // Real-time engine ticking / knock sequencers
+    let animationFrameId = null;
+    let lastKnockTime = 0;
+    let lastMisfireTime = 0;
+    
+    // Canvas visualizers
+    let scopeCanvas = null;
+    let scopeCtx = null;
+    let radarCanvas = null;
+    let radarCtx = null;
+    let radarAngle = 0;
+
+    // Boot logs configuration
+    const bootLogs = [
+      "NEUROMOTOR SYSTEM BOOT BLOCK SEQUENCE v1.02",
+      "COPYRIGHT (C) 1999 NEUROMOTOR ACOUSTICS CO.",
+      "--------------------------------------------------",
+      "CPU: HACKER-COGNITION CRX-99 PROCESSOR AT 133MHz",
+      "MEMORY TEST: 640KB CONVENTIONAL SYSTEM RAM - OK",
+      "SOUND: CREATIVE LABS SOUND BLASTER 16 DETECTED [ISA PORT 220]",
+      "PROBE ARRAY: PROBING PARALLEL COUPLING PORT LPT1...",
+      "[OK] TRANSDUCER HARNESS DETECTED [NODE_ID_#8192]",
+      "DIAL-UP HOST: DIALING 1-800-NEURAL-ENG-VIBE...",
+      "CONNECTING... SHAKING SECURE ACOUSTIC COMPRESSION HANDLES...",
+      "[OK] PROTOCOLS CALIBRATED AT 33.6KBPS MODEM VELOCITY",
+      "LOADING SYSTEM INTELLIGENCE ARRAY DATABASE...",
+      "LOADING ANC_CORE_SPECTROGRAM_MATRIX.DAT (128KB)... DONE",
+      "CALIBRATING RESONANCE DETECTORS ON ALL CYLINDER CHANNELS...",
+      "[OK] NOISE-FLOOR COMPENSATED AT -62.4dB BALANCED DETECTOR",
+      "--------------------------------------------------",
+      "NEUROMOTOR CORE OS IS FULLY SECURED AND COMMITTED.",
+      "WARNING: ROTATING ACOUSTIC ARRAYS ARE CHARGED AT 12V COILS.",
+      " "
+    ];
+
+    /* ==========================================
+       1. BOOT SEQUENCE ENGINE
+       ========================================== */
+    window.addEventListener('load', () => {
+      runSystemBootSequence();
+      setupDialsAndCanvases();
+      updateSpecsBlockUI();
+    });
+
+    function runSystemBootSequence() {
+      const bootContainer = document.getElementById('bootOverlay');
+      let currentLineIndex = 0;
+
+      function printNextLine() {
+        if (currentLineIndex < bootLogs.length) {
+          const lineText = bootLogs[currentLineIndex];
+          const lineElement = document.createElement('div');
+          lineElement.className = 'boot-text-line';
+          lineElement.innerText = lineText;
+          bootContainer.appendChild(lineElement);
+          
+          // Auto scroll
+          bootContainer.scrollTop = bootContainer.scrollHeight;
+          
+          currentLineIndex++;
+          // Variable delay to simulate dialup and processing speeds
+          let delay = 60;
+          if (lineText.includes("CONNECTING")) delay = 1000;
+          if (lineText.includes("LOADING")) delay = 600;
+          
+          setTimeout(printNextLine, delay);
+        } else {
+          // Finished booting, show button
+          const startBtn = document.createElement('button');
+          startBtn.className = 'btn-boot-start';
+          startBtn.innerText = "ACTIVATE SONIC CORE SYSTEM";
+          startBtn.style.display = "block";
+          startBtn.onclick = () => {
+            // Web Audio security requires user interaction
+            initializeAcousticAudio();
+            bootContainer.style.display = 'none';
+            logTerminalEvent("[INIT] Core boot completed. System variables aligned to default profiles.");
+            startSimulatedSystemLoad();
+          };
+          bootContainer.appendChild(startBtn);
+          bootContainer.scrollTop = bootContainer.scrollHeight;
+        }
+      }
+      
+      printNextLine();
+    }
+
+    /* ==========================================
+       2. WEB AUDIO SYNTHESIZER ENGINE
+       ========================================== */
+    function initializeAcousticAudio() {
+      if (audioCtx) return;
+      
+      try {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        // Setup analyser
+        analyserNode = audioCtx.createAnalyser();
+        analyserNode.fftSize = 256;
+        
+        // Setup main gain and misfire gain blocks
+        mainGain = audioCtx.createGain();
+        mainGain.gain.setValueAtTime(0.0, audioCtx.currentTime); // silent initially
+        
+        misfireGain = audioCtx.createGain();
+        misfireGain.gain.setValueAtTime(1.0, audioCtx.currentTime);
+        
+        // Build Noise generator (essential for combustion rush & exhaust leaks)
+        const bufferSize = audioCtx.sampleRate * 2;
+        const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const output = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          output[i] = Math.random() * 2 - 1;
+        }
+        
+        noiseNode = audioCtx.createBufferSource();
+        noiseNode.buffer = noiseBuffer;
+        noiseNode.loop = true;
+        
+        // Filter the noise to simulate combustion hiss or exhaust leaks
+        noiseFilter = audioCtx.createBiquadFilter();
+        noiseFilter.type = 'bandpass';
+        noiseFilter.Q.setValueAtTime(1.5, audioCtx.currentTime);
+        
+        noiseGain = audioCtx.createGain();
+        noiseGain.gain.setValueAtTime(0.04, audioCtx.currentTime); // low baseline hiss
+        
+        // Connect noise tree
+        noiseNode.connect(noiseFilter);
+        noiseFilter.connect(noiseGain);
+        noiseGain.connect(misfireGain);
+        
+        // Assemble routing
+        misfireGain.connect(mainGain);
+        mainGain.connect(analyserNode);
+        analyserNode.connect(audioCtx.destination);
+        
+        noiseNode.start(0);
+        
+        // Setup engine oscillators
+        buildEngineOscillators();
+        
+        // Start live scope visuals loop
+        requestAnimationFrame(renderVisualScopeFrame);
+        
+      } catch (err) {
+        console.error("Failed to initialize audio contexts", err);
+      }
+    }
+
+    function buildEngineOscillators() {
+      if (!audioCtx) return;
+      
+      // Stop existing if any
+      try {
+        if (engineOsc1) engineOsc1.stop();
+        if (engineOsc2) engineOsc2.stop();
+        if (engineSubOsc) engineSubOsc.stop();
+      } catch(e){}
+      
+      // Calculate fundamental firing frequency
+      // For a 4-stroke engine: Freq = (RPM / 60) * (Cylinders / 2)
+      let cylCount = 6;
+      if (currentEngineType === 'v8') cylCount = 8;
+      if (currentEngineType === 'flat4') cylCount = 4;
+      
+      let baseFreq = (currentRPM / 60) * (cylCount / 2);
+      
+      engineOsc1 = audioCtx.createOscillator();
+      engineOsc1.type = 'sawtooth';
+      engineOsc1.frequency.setValueAtTime(baseFreq, audioCtx.currentTime);
+      
+      engineOsc2 = audioCtx.createOscillator();
+      engineOsc2.type = 'triangle';
+      engineOsc2.frequency.setValueAtTime(baseFreq * 2.0, audioCtx.currentTime); // 2nd harmonic
+      
+      engineSubOsc = audioCtx.createOscillator();
+      engineSubOsc.type = 'sawtooth';
+      engineSubOsc.frequency.setValueAtTime(baseFreq * 0.5, audioCtx.currentTime); // Sub-harmonic combustion thud
+      
+      // Connect sound generators to misfire gain block
+      engineOsc1.connect(misfireGain);
+      engineOsc2.connect(misfireGain);
+      engineSubOsc.connect(misfireGain);
+      
+      engineOsc1.start(0);
+      engineOsc2.start(0);
+      engineSubOsc.start(0);
+      
+      updateSynthFrequencies();
+    }
+
+    function updateSynthFrequencies() {
+      if (!audioCtx || !engineOsc1) return;
+      
+      let cylCount = 6;
+      if (currentEngineType === 'v8') cylCount = 8;
+      if (currentEngineType === 'flat4') cylCount = 4;
+      
+      let baseFreq = (currentRPM / 60) * (cylCount / 2);
+      let now = audioCtx.currentTime;
+      
+      engineOsc1.frequency.setTargetAtTime(baseFreq, now, 0.05);
+      engineOsc2.frequency.setTargetAtTime(baseFreq * 1.5, now, 0.05); // Rich combustion harmonic
+      engineSubOsc.frequency.setTargetAtTime(baseFreq * 0.5, now, 0.05);
+      
+      // Bandpass filter center frequency moves up with RPM
+      let filterCenter = 150 + (currentRPM * 0.4);
+      noiseFilter.frequency.setTargetAtTime(filterCenter, now, 0.05);
+      
+      // Fault adjustments
+      if (currentFault === 'leak') {
+        // High frequency exhaust blowing crack hiss
+        noiseFilter.Q.setTargetAtTime(0.8, now, 0.1);
+        noiseFilter.frequency.setTargetAtTime(2500, now, 0.1);
+        noiseGain.gain.setTargetAtTime(0.35, now, 0.1);
+      } else {
+        noiseFilter.Q.setTargetAtTime(1.5, now, 0.1);
+        noiseGain.gain.setTargetAtTime(0.06 + (currentLoad * 0.03), now, 0.1);
+      }
+    }
+
+    function toggleAcousticEngineAudio() {
+      const isChecked = document.getElementById('acousticSoundSwitch').checked;
+      isSynthRunning = isChecked;
+      
+      // Play a mechanical clicking sound
+      playUiBeep(120, 0.08, 'triangle');
+      
+      if (!audioCtx) {
+        initializeAcousticAudio();
+      }
+      
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+      
+      const now = audioCtx.currentTime;
+      if (isSynthRunning) {
+        mainGain.gain.setTargetAtTime(0.18, now, 0.1); // fade in safely
+        document.getElementById('probeStatusText').innerText = "PROBE_ACTIVE";
+        document.getElementById('probeStatusText').classList.add('active');
+        logTerminalEvent("[OK] Transducers excited. Acoustic audio stream active.");
+      } else {
+        mainGain.gain.setTargetAtTime(0.0, now, 0.08); // fade out safely
+        document.getElementById('probeStatusText').innerText = "PROBE_OFFLINE";
+        document.getElementById('probeStatusText').classList.remove('active');
+        logTerminalEvent("[WARN] Sound transducers muted. Stream decoupled.");
+      }
+    }
+
+    /* ==========================================
+       3. INTERACTIVE FAULT INJECTION & SEQUENCERS
+       ========================================== */
+    function setSynthEngine(type) {
+      currentEngineType = type;
+      playUiBeep(800, 0.05, 'sine');
+      
+      // Update UI button highlights
+      document.getElementById('btn-engine-v8').classList.remove('active');
+      document.getElementById('btn-engine-i6').classList.remove('active');
+      document.getElementById('btn-engine-flat4').classList.remove('active');
+      
+      document.getElementById('btn-engine-' + type).classList.add('active');
+      
+      let blockLabel = "SYS-I6 TURBO";
+      if (type === 'v8') blockLabel = "CYBER-V8 HIGH-COMP";
+      if (type === 'flat4') blockLabel = "FLAT-4 BOXER RUMBLE";
+      
+      document.getElementById('specEngineBlockName').innerText = blockLabel;
+      document.getElementById('mixerEngineTypeReadout').innerText = (type === 'v8') ? "V8 Cylinder Core" : (type === 'i6') ? "Inline-6 Cylinder" : "Flat-4 Boxer";
+      
+      buildEngineOscillators();
+      updateSpecsBlockUI();
+      logTerminalEvent(`[SYS] Altered mechanical cylinder configuration to ${type.toUpperCase()}.`);
+    }
+
+    function updateSynthRpm(val) {
+      currentRPM = parseInt(val);
+      
+      document.getElementById('rpmSlider').value = val;
+      document.getElementById('rpmSliderRead').innerText = val + " RPM";
+      document.getElementById('mixerRpmVal').innerText = val + " RPM";
+      document.getElementById('miniRpmReadout').innerText = val + " RPM";
+      
+      updateSynthFrequencies();
+      updateSpecsBlockUI();
+    }
+
+    function updateSynthLoad(val) {
+      currentLoad = parseInt(val);
+      let labels = ["Low", "Medium", "High"];
+      
+      document.getElementById('loadSlider').value = val;
+      document.getElementById('loadSliderRead').innerText = labels[val - 1].toUpperCase();
+      document.getElementById('mixerLoadVal').innerText = labels[val - 1];
+      
+      updateSynthFrequencies();
+      updateSpecsBlockUI();
+    }
+
+    function setSynthFault(faultType) {
+      currentFault = faultType;
+      playUiBeep(600, 0.06, 'sine');
+      
+      // Reset button UI
+      document.getElementById('btn-fault-healthy').classList.remove('active');
+      document.getElementById('btn-fault-misfire').classList.remove('active');
+      document.getElementById('btn-fault-knock').classList.remove('active');
+      document.getElementById('btn-fault-leak').classList.remove('active');
+      
+      document.getElementById('btn-fault-' + faultType).classList.add('active');
+      
+      // Update UI statuses
+      const statusEl = document.getElementById('specStatusCode');
+      if (faultType === 'healthy') {
+        statusEl.innerText = "NOMINAL_HARMONICS";
+        statusEl.style.color = "var(--accent-color)";
+        logTerminalEvent("[SYS] Ignition fault injection cleared. All pistons seating nominal.");
+      } else if (faultType === 'misfire') {
+        statusEl.innerText = "MISFIRE_DETECT_CYL3";
+        statusEl.style.color = "#ff3333";
+        logTerminalEvent("[ALERT] Spark plug core ground short on Cylinder 3 injected. Cyclic combustion thuds.");
+      } else if (faultType === 'knock') {
+        statusEl.innerText = "ROD_BEARING_PLAY_CYL2";
+        statusEl.style.color = "#ff3333";
+        logTerminalEvent("[ALERT] Spin rod bearing clearance tolerances exceeded. Structural impact imminent!");
+      } else if (faultType === 'leak') {
+        statusEl.innerText = "EXHAUST_BLOWBY_GASKET";
+        statusEl.style.color = "#ffaa00";
+        logTerminalEvent("[ALERT] Exhaust gasket structural breach. High gas velocities whistling.");
+      }
+      
+      updateSynthFrequencies();
+      updateSpecsBlockUI();
+    }
+
+    function updateSpecsBlockUI() {
+      // Calculate display values
+      let cylCount = 6;
+      if (currentEngineType === 'v8') cylCount = 8;
+      if (currentEngineType === 'flat4') cylCount = 4;
+      
+      let baseFreq = (currentRPM / 60) * (cylCount / 2);
+      let angularVel = (currentRPM / 60) * (2 * Math.PI);
+      
+      document.getElementById('specFreqHz').innerText = baseFreq.toFixed(2) + " Hz";
+      document.getElementById('specCrankRad').innerText = angularVel.toFixed(1) + " rad/s";
+      
+      // Structural balance coefficient calculation
+      let balance = 0.998 - (currentLoad * 0.005);
+      if (currentFault === 'misfire') balance -= 0.125;
+      if (currentFault === 'knock') balance -= 0.185;
+      if (currentFault === 'leak') balance -= 0.035;
+      
+      document.getElementById('specStructuralCoeff').innerText = balance.toFixed(3);
+    }
+
+    /* ==========================================
+       4. SYNTHESIZED ROD KNOCK & MISFIRE SEQUENCE LOOPS
+       ========================================== */
+    function triggerRodKnock(time) {
+      if (!audioCtx) return;
+      
+      // Spun rod bearing knock is a metallic "clack"
+      // Trigger triangle pulse and highpass filtered noise pulse simultaneously
+      let knockOsc = audioCtx.createOscillator();
+      knockOsc.type = 'triangle';
+      knockOsc.frequency.setValueAtTime(140, time);
+      
+      let knockFilter = audioCtx.createBiquadFilter();
+      knockFilter.type = 'bandpass';
+      knockFilter.frequency.setValueAtTime(900, time);
+      knockFilter.Q.setValueAtTime(2.0, time);
+      
+      let knockGain = audioCtx.createGain();
+      // Louder knock under high loading
+      let knockVol = 0.18 + (currentLoad * 0.08);
+      knockGain.gain.setValueAtTime(knockVol, time);
+      knockGain.gain.exponentialRampToValueAtTime(0.001, time + 0.025); // very fast decay
+      
+      knockOsc.connect(knockFilter);
+      knockFilter.connect(knockGain);
+      knockGain.connect(analyserNode);
+      
+      knockOsc.start(time);
+      knockOsc.stop(time + 0.03);
+    }
+
+    /* ==========================================
+       5. REAL-TIME CANVAS VISUALIZERS
+       ========================================== */
+    function setupDialsAndCanvases() {
+      scopeCanvas = document.getElementById('scopeCanvas');
+      scopeCtx = scopeCanvas.getContext('2d');
+      radarCanvas = document.getElementById('radarCanvas');
+      radarCtx = radarCanvas.getContext('2d');
+      
+      // Handle canvas resolution bounds
+      scopeCanvas.width = scopeCanvas.offsetWidth;
+      scopeCanvas.height = scopeCanvas.offsetHeight;
+      
+      window.addEventListener('resize', () => {
+        if (scopeCanvas) {
+          scopeCanvas.width = scopeCanvas.offsetWidth;
+          scopeCanvas.height = scopeCanvas.offsetHeight;
+        }
+      });
+    }
+
+    function renderVisualScopeFrame() {
+      requestAnimationFrame(renderVisualScopeFrame);
+      
+      if (!scopeCtx || !analyserNode) return;
+      
+      const width = scopeCanvas.width;
+      const height = scopeCanvas.height;
+      
+      // Soft phosphor clear trail (creates classic CRT glow trails)
+      scopeCtx.fillStyle = 'rgba(0, 0, 0, 0.25)';
+      scopeCtx.fillRect(0, 0, width, height);
+      
+      // Technical coordinates grid
+      scopeCtx.strokeStyle = 'rgba(0, 255, 102, 0.05)';
+      scopeCtx.lineWidth = 1;
+      for (let x = 0; x < width; x += 30) {
+        scopeCtx.beginPath();
+        scopeCtx.moveTo(x, 0);
+        scopeCtx.lineTo(x, height);
+        scopeCtx.stroke();
+      }
+      for (let y = 0; y < height; y += 30) {
+        scopeCtx.beginPath();
+        scopeCtx.moveTo(0, y);
+        scopeCtx.lineTo(width, y);
+        scopeCtx.stroke();
+      }
+      
+      // Gather audio buffer
+      const bufferLength = analyserNode.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+      analyserNode.getByteTimeDomainData(dataArray);
+      
+      // Draw neon wave line
+      scopeCtx.strokeStyle = getComputedStyle(document.body).getPropertyValue('--accent-color').trim() || '#00ff66';
+      scopeCtx.lineWidth = 2.5;
+      scopeCtx.shadowBlur = 6;
+      scopeCtx.shadowColor = scopeCtx.strokeStyle;
+      
+      scopeCtx.beginPath();
+      const sliceWidth = width / bufferLength;
+      let x = 0;
+      
+      for (let i = 0; i < bufferLength; i++) {
+        const v = dataArray[i] / 128.0;
+        const y = (v * height) / 2;
+        
+        if (i === 0) {
+          scopeCtx.moveTo(x, y);
+        } else {
+          scopeCtx.lineTo(x, y);
+        }
+        
+        x += sliceWidth;
+      }
+      
+      scopeCtx.lineTo(width, height / 2);
+      scopeCtx.stroke();
+      scopeCtx.shadowBlur = 0; // reset
+      
+      // Real-time audio sequencing loop inside requestAnimationFrame (crucial for exact timing!)
+      if (isSynthRunning && audioCtx) {
+        let now = audioCtx.currentTime;
+        let revSec = currentRPM / 60;
+        
+        // Rod knock loop - 1 hit per revolution
+        let knockInterval = 1 / revSec;
+        if (currentFault === 'knock' && now - lastKnockTime >= knockInterval) {
+          triggerRodKnock(now);
+          lastKnockTime = now;
+        }
+        
+        // Misfire loop - drops engine volume every 2nd engine revolution
+        let misfireInterval = 2 / revSec;
+        if (currentFault === 'misfire' && now - lastMisfireTime >= misfireInterval) {
+          let dropDuration = 0.45 / revSec; // drop half a revolution
+          misfireGain.gain.setValueAtTime(1.0, now);
+          misfireGain.gain.exponentialRampToValueAtTime(0.08, now + 0.015);
+          misfireGain.gain.setValueAtTime(0.08, now + dropDuration - 0.015);
+          misfireGain.gain.exponentialRampToValueAtTime(1.0, now + dropDuration);
+          lastMisfireTime = now;
+        }
+      }
+      
+      // Spin the mechanical piston assembly in About tab at proportional speed
+      animateAboutPistonAssembly();
+      
+      // Update Radar dial on sidebar
+      renderRotaryRadarFrame();
+    }
+
+    function renderRotaryRadarFrame() {
+      if (!radarCtx) return;
+      const size = 160;
+      const center = size / 2;
+      const radius = size / 2 - 5;
+      
+      radarCtx.fillStyle = 'rgba(0, 0, 0, 0.15)'; // trails
+      radarCtx.fillRect(0, 0, size, size);
+      
+      // Outer radar dial shell
+      let activeColor = getComputedStyle(document.body).getPropertyValue('--border-color').trim() || '#00ff66';
+      radarCtx.strokeStyle = activeColor;
+      radarCtx.lineWidth = 1;
+      radarCtx.beginPath();
+      radarCtx.arc(center, center, radius, 0, 2 * Math.PI);
+      radarCtx.stroke();
+      
+      // Inner concentric coordinate circles
+      radarCtx.strokeStyle = 'rgba(0, 255, 102, 0.08)';
+      radarCtx.beginPath();
+      radarCtx.arc(center, center, radius * 0.6, 0, 2 * Math.PI);
+      radarCtx.arc(center, center, radius * 0.3, 0, 2 * Math.PI);
+      radarCtx.stroke();
+      
+      // Crosshairs
+      radarCtx.beginPath();
+      radarCtx.moveTo(5, center); radarCtx.lineTo(size - 5, center);
+      radarCtx.moveTo(center, 5); radarCtx.lineTo(center, size - 5);
+      radarCtx.stroke();
+      
+      // Rotating scan sweeps
+      radarAngle += 0.04;
+      if (radarAngle >= 2 * Math.PI) radarAngle = 0;
+      
+      radarCtx.strokeStyle = activeColor;
+      radarCtx.lineWidth = 2;
+      radarCtx.beginPath();
+      radarCtx.moveTo(center, center);
+      let scanX = center + radius * Math.cos(radarAngle);
+      let scanY = center + radius * Math.sin(radarAngle);
+      radarCtx.lineTo(scanX, scanY);
+      radarCtx.stroke();
+      
+      // Dynamic simulated signal blips (flickers based on engine sound)
+      if (isSynthRunning) {
+        radarCtx.fillStyle = '#ff3333';
+        if (currentFault === 'healthy') radarCtx.fillStyle = activeColor;
+        
+        let offsetPulse = 1.0;
+        if (analyserNode) {
+          const arr = new Uint8Array(16);
+          analyserNode.getByteFrequencyData(arr);
+          offsetPulse = 1.0 + (arr[2] / 255.0) * 0.3;
+        }
+        
+        radarCtx.beginPath();
+        radarCtx.arc(center + 30 * Math.sin(radarAngle * 0.5), center - 20 * Math.cos(radarAngle * 0.8), 4 * offsetPulse, 0, 2 * Math.PI);
+        radarCtx.fill();
+      }
+    }
+
+    /* ==========================================
+       6. LIVE PISTON BLUEPRINT SCHEMATIC ANIMATION
+       ========================================== */
+    let crankAngle = 0;
+    function animateAboutPistonAssembly() {
+      const pGroup = document.getElementById('movingGroup');
+      const rod = document.getElementById('connectingRod');
+      const crank = document.getElementById('crankRotator');
+      const spark = document.getElementById('pistonSpark');
+      
+      if (!pGroup || !rod || !crank) return;
+      
+      // Speed multiplier proportional to RPM
+      let radsPerSec = (currentRPM / 60) * (2 * Math.PI);
+      // Normalized frame rate speed offset
+      crankAngle += (radsPerSec / 60); 
+      if (crankAngle >= 4 * Math.PI) crankAngle = 0; // 720 degrees for full 4-stroke cycle
+      
+      // Crank radius and Rod length coordinate equations
+      let r = 24;
+      let L = 75;
+      
+      // Rotator angle
+      crank.setAttribute('transform', `translate(100, 180) rotate(${-crankAngle * 180 / Math.PI})`);
+      
+      // Pin coordinate offsets
+      let cx = r * Math.cos(crankAngle);
+      let cy = r * Math.sin(crankAngle);
+      
+      // Pin strictly vertical constraint solver
+      let py = cy + Math.sqrt(L*L - cx*cx);
+      
+      // Offset translation limits (0 coordinate is centered at x=100, y=180)
+      let pistonOffsetTranslate = -py + 90;
+      pGroup.setAttribute('transform', `translate(0, ${pistonOffsetTranslate})`);
+      
+      // Move connecting rod lines
+      rod.setAttribute('x1', 100);
+      rod.setAttribute('y1', 70 + pistonOffsetTranslate);
+      rod.setAttribute('x2', 100 + cx);
+      rod.setAttribute('y2', 180 - cy); // invert y for SVG coordinate orientation
+      
+      // Spark trigger logic: fires once every 2 crankshaft revolutions at TDC (Top Dead Center)
+      // Represented by crankAngle near 2*PI (ignition stroke)
+      let tolerance = 0.12;
+      let ignitionThreshold = 2 * Math.PI;
+      if (Math.abs(crankAngle - ignitionThreshold) < tolerance) {
+        spark.style.display = 'block';
+      } else {
+        spark.style.display = 'none';
+      }
+    }
+
+    function highlightSchematic(part) {
+      playUiBeep(1000, 0.05, 'sine');
+      
+      // Clear active states
+      document.getElementById('co-valve').classList.remove('active');
+      document.getElementById('co-piston').classList.remove('active');
+      document.getElementById('co-rod').classList.remove('active');
+      document.getElementById('co-spark').classList.remove('active');
+      
+      document.getElementById('co-' + part).classList.add('active');
+      
+      let faultToInject = 'healthy';
+      if (part === 'valve') faultToInject = 'leak';
+      if (part === 'piston') faultToInject = 'misfire';
+      if (part === 'rod') faultToInject = 'knock';
+      if (part === 'spark') faultToInject = 'misfire';
+      
+      setSynthFault(faultToInject);
+    }
+
+    /* ==========================================
+       7. FLOPPY DB LOADER (CASE HISTORY)
+       ========================================== */
+    function loadFloppyCase(caseKey) {
+      playFloppyDriveNoise();
+      
+      // Highlight selection overlay loading sequence
+      const floppyItem = document.getElementById('floppy-' + caseKey);
+      const loader = document.getElementById('loader-' + caseKey);
+      
+      loader.style.display = 'flex';
+      loader.classList.add('active');
+      
+      setTimeout(() => {
+        loader.style.display = 'none';
+        loader.classList.remove('active');
+        
+        // Clear active floppy highlight
+        document.getElementById('floppy-skyline').classList.remove('active');
+        document.getElementById('floppy-mustang').classList.remove('active');
+        document.getElementById('floppy-impreza').classList.remove('active');
+        document.getElementById('floppy-porsche').classList.remove('active');
+        
+        floppyItem.classList.add('active');
+        
+        // Auto load parameters onto synthesis deck!
+        if (caseKey === 'skyline') {
+          setSynthEngine('i6');
+          updateSynthRpm(3200);
+          updateSynthLoad(2);
+          setSynthFault('healthy');
+        } else if (caseKey === 'mustang') {
+          setSynthEngine('v8');
+          updateSynthRpm(1600);
+          updateSynthLoad(3);
+          setSynthFault('knock');
+        } else if (caseKey === 'impreza') {
+          setSynthEngine('flat4');
+          updateSynthRpm(2200);
+          updateSynthLoad(2);
+          setSynthFault('misfire');
+        } else if (caseKey === 'porsche') {
+          setSynthEngine('i6');
+          updateSynthRpm(4200);
+          updateSynthLoad(3);
+          setSynthFault('leak');
+        }
+        
+        // Force audio loop switch
+        if (!isSynthRunning) {
+          document.getElementById('acousticSoundSwitch').checked = true;
+          toggleAcousticEngineAudio();
+        }
+        
+        logTerminalEvent(`[OK] Mounted secure diskette sector. Calibration profiles loaded.`);
+      }, 1600);
+    }
+
+    /* ==========================================
+       8. SCHEDULER APPOINTMENT & KEY DISK GRAPHICS
+       ========================================== */
+    let selectedBookingDateStr = 'JULY 02, 2026';
+
+    function setBookingDate(id, dateStr) {
+      playUiBeep(600, 0.05, 'sine');
+      document.getElementById('date-slot-1').classList.remove('active');
+      document.getElementById('date-slot-2').classList.remove('active');
+      document.getElementById('date-slot-3').classList.remove('active');
+      
+      document.getElementById(id).classList.add('active');
+      selectedBookingDateStr = dateStr;
+    }
+
+    function executeSystemBooking(e) {
+      e.preventDefault();
+      playFloppyDriveNoise();
+      
+      // Extract inputs
+      const name = document.getElementById('resName').value;
+      const vehicle = document.getElementById('resVehicle').value;
+      const engine = document.getElementById('resEngine').value.toUpperCase();
+      const expertNode = document.getElementById('resExpert');
+      const expertName = expertNode.options[expertNode.selectedIndex].text.toUpperCase();
+      
+      logTerminalEvent("[SYS] Writing diagnostic appointment allocation values directly to floppy sector 0x3F...");
+      
+      setTimeout(() => {
+        // Output fields to key floppy ticket
+        document.getElementById('t-name').innerText = name.toUpperCase();
+        document.getElementById('t-vehicle').innerText = vehicle.toUpperCase();
+        document.getElementById('t-engine').innerText = engine;
+        document.getElementById('t-date').innerText = selectedBookingDateStr;
+        document.getElementById('t-expert').innerText = expertName;
+        
+        // Random secure token
+        const randToken = "#NMA-" + Math.floor(1000 + Math.random() * 9000);
+        document.getElementById('t-id').innerText = randToken;
+        
+        // Reveal Floppy Disc physical token ticket!
+        document.getElementById('generatedFloppyTicket').style.display = 'flex';
+        
+        logTerminalEvent("[OK] Secure access token key generated on magnetic floppy sector successfully.");
+      }, 1500);
+    }
+
+    /* ==========================================
+       9. ACCOUNT SCANNER & DIAGNOSTIC DIRECTIVES
+       ========================================= */
+    function triggerNeuralScan() {
+      if (document.getElementById('neuralScannerBox').classList.contains('scanning')) return;
+      
+      playFloppyDriveNoise();
+      
+      const scanner = document.getElementById('neuralScannerBox');
+      const results = document.getElementById('scannerResults');
+      const text = document.getElementById('scannerStatusText');
+      
+      scanner.classList.add('scanning');
+      results.style.display = 'none';
+      text.innerText = "EXECUTING FREQUENCY CONVOLUTION SPECTRAL SCAN...";
+      
+      logTerminalEvent("[SYS] Initializing fast Fourier transform (FFT) on telemetry buffer...");
+      
+      let step = 0;
+      const scanLogs = [
+        "[SYS] Isolating acoustic resonance background noises...",
+        "[SYS] Bandpassing cooling deck fan frequency interference (120Hz filter)...",
+        "[SYS] Feeding auditory envelope matrices to Neural Network v1.02...",
+        "[SYS] Comparing wave patterns against healthy baseline configurations...",
+        "[WARN] High-amplitude transient peaks registered at 180Hz bearing coordinates."
+      ];
+      
+      const scanInterval = setInterval(() => {
+        if (step < scanLogs.length) {
+          logTerminalEvent(scanLogs[step]);
+          step++;
+        } else {
+          clearInterval(scanInterval);
+          scanner.classList.remove('scanning');
+          text.innerText = "TELEMETRY EVALUATION COMPLETED SUCCESSFULLY.";
+          
+          results.style.display = 'flex';
+          playUiBeep(1400, 0.4, 'sine');
+          logTerminalEvent("[OK] Acoustic network reports diagnostic certificate generated.");
+        }
+      }, 1000);
+    }
+
+    /* ==========================================
+       10. CORE NAVIGATION MODULE
+       ========================================== */
+    function switchConsoleTab(tabId) {
+      if (tabId === currentTab) return;
+      
+      // Play a diagnostic terminal click
+      playUiBeep(600, 0.08, 'sine');
+      
+      // Deactivate existing tab button UIs
+      const buttons = document.querySelectorAll('.console-btn');
+      buttons.forEach(btn => {
+        if (btn.getAttribute('data-tab') === tabId) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+      
+      // Transition tab pages
+      document.getElementById('tab-' + currentTab).classList.remove('active');
+      document.getElementById('tab-' + tabId).classList.add('active');
+      
+      currentTab = tabId;
+      logTerminalEvent(`[SYS] Navigation routing focused on module coordinate: ${tabId.toUpperCase()}_BOARD`);
+    }
+
+    function setSystemTheme(themeId) {
+      playUiBeep(300, 0.05, 'triangle');
+      
+      document.getElementById('theme-cyber').classList.remove('active');
+      document.getElementById('theme-valve97').classList.remove('active');
+      document.getElementById('theme-empire').classList.remove('active');
+      document.getElementById('theme-gearbox').classList.remove('active');
+      
+      document.getElementById('theme-' + themeId).classList.add('active');
+      
+      document.body.setAttribute('data-theme', themeId);
+      
+      let systemName = "NEUROMOTOR";
+      if (themeId === 'valve97') systemName = "VALVE";
+      if (themeId === 'empire') systemName = "EMPIRE";
+      if (themeId === 'gearbox') systemName = "GEARBOX";
+      
+      document.getElementById('headerSystemName').innerText = systemName;
+      logTerminalEvent(`[SYS] Swapped aesthetic display parameters to thematic register: ${themeId.toUpperCase()}`);
+    }
+
+    /* ==========================================
+       11. REAL-TIME TELEMETRY SYSTEM LOGGER LOGS
+       ========================================== */
+    function logTerminalEvent(msg) {
+      const logger = document.getElementById('terminalLoggerLog');
+      if (logger) {
+        logger.innerText = msg;
+      }
+    }
+
+    function startSimulatedSystemLoad() {
+      setInterval(() => {
+        // Flickering system CPU loads
+        let randVal = Math.random() * 10;
+        if (isSynthRunning) randVal += 35 + (currentRPM / 200);
+        document.getElementById('systemLoadVal').innerText = randVal.toFixed(2) + "%";
+      }, 800);
+    }
+
+    /* ==========================================
+       12. INTERACTIVE SYNTH SOUNDS (Clicks & Whistles)
+       ========================================== */
+    function playUiBeep(freq, duration, type = 'sine') {
+      if (!audioCtx) return;
+      try {
+        let osc = audioCtx.createOscillator();
+        let gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.06, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch(e){}
+    }
+
+    function playFloppyDriveNoise() {
+      if (!audioCtx) return;
+      try {
+        // Synthesize classic grinding mechanical stepper motor sound in Web Audio!
+        let now = audioCtx.currentTime;
+        
+        for (let i = 0; i < 6; i++) {
+          let clickTime = now + (i * 0.15);
+          
+          let noiseOsc = audioCtx.createOscillator();
+          noiseOsc.type = 'sawtooth';
+          noiseOsc.frequency.setValueAtTime(80, clickTime);
+          
+          let noiseFilt = audioCtx.createBiquadFilter();
+          noiseFilt.type = 'bandpass';
+          noiseFilt.frequency.setValueAtTime(350, clickTime);
+          
+          let noiseG = audioCtx.createGain();
+          noiseG.gain.setValueAtTime(0.12, clickTime);
+          noiseG.gain.exponentialRampToValueAtTime(0.001, clickTime + 0.08);
+          
+          noiseOsc.connect(noiseFilt);
+          noiseFilt.connect(noiseG);
+          noiseG.connect(audioCtx.destination);
+          
+          noiseOsc.start(clickTime);
+          noiseOsc.stop(clickTime + 0.1);
+        }
+      } catch(e){}
+    }
+  </script>
+</body>
+</html>
